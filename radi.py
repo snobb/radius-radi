@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 #
 # radi.py
+# Author: Aleksei Kozadaev
 #
 
 import argparse
-import struct
-import socket
-import hashlib
+import struct, socket
+import pickle, hashlib
 
 # Radius-Request
 #    0                   1                   2                   3
@@ -58,101 +58,64 @@ AVP_TYPE = {
     "3GPP_IMEISV" : 20,
 }
 
-# Values
+# Constants
 FRAMED_PROTO_PPP = 1
+PICKLED_FILE_NAME = "radi.dat"
 
-class Data(object):
-    """data storage object"""
+class Config(object):
+    """config storage object"""
     def __init__(self):
-        self.radiusDest = "127.0.0.1"
-        self.radiusPort = 1813
-        self.radiusSecret = "secret"
+        self.radius_dest = "127.0.0.1"
+        self.radius_port = 1813
+        self.radius_secret = "secret"
         self.verbose = False
-        self.subsId="12345678912345"
-        self.subsType="imsi"
-        self.framedIp="10.0.0.1"
-
-
-def parseArgs(data):
-    """parse arguments"""
-    parser = argparse.ArgumentParser(
-            description="Radius accounting session management tool",
-            argument_default=argparse.SUPPRESS)
-
-    parser.add_argument("-d", "--destination", dest="radiusDest",
-            help="ip of radius endpoint", required=False)
-
-    parser.add_argument("-p", "--secret", dest="radiusSecret",
-            help="radius secret")
-
-    # mutually exclusive actions (start/stop/restart)
-    group = parser.add_mutually_exclusive_group()
-    group.add_argument("-S", "--start", dest="action", required=False,
-            action="store_const", const=START, default=START,
-            help="Start session")
-
-    group.add_argument("-T", "--stop", dest="action", required=False,
-            action="store_const", const=STOP, help="Stop session")
-
-    group.add_argument("-R", "--restart", dest="action", required=False,
-            action="store_const", const=RESTART, help="restart session")
-
-    parser.add_argument("-i", "--id", dest="subsId",
-            help="subscriber id default imsi out of testing")
-
-    parser.add_argument("-t", "--id-type", dest="subsType",
-            choices=["imsi", "imei"],
-            help="subscriber id type { IMSI, IMEI }")
-
-    parser.add_argument("-f", "--framed-ip", dest="framedIp",
-            help="framed ip")
-
-    parser.add_argument("-v", "--verbose", dest="verbose",
-            action="store_true", help="enable verbose output")
-
-
-    args = parser.parse_args()
-    data.__dict__.update(args.__dict__)
-    return data
+        self.subs_id = "12345678901234"
+        self.subs_type = "imsi"
+        self.framed_ip ="10.0.0.1"
+        self.delay = 1
+        self.action = START
+        self.verbose = False
 
 
 
 class RadiusAvp(object):
-    def __init__(self, avpType, avpValue, allowChild=True):
-        self.avpType = AVP_TYPE[avpType]
-        self.avpValue = avpValue
-        self.vsaChild = None
+    """simple radius AVP implementation"""
+    def __init__(self, avp_type, avp_value, allow_child=True):
+        self.avp_type = AVP_TYPE[avp_type]
+        self.avp_value = avp_value
+        self.vsa_child = None
 
-        if allowChild and avpType.startswith("3GPP"):
-            self.avpType = 26                   # Vendor_Specific
-            self.avpValue = IntegerType(10415)  # 3GPP
-            self.vsaChild = RadiusAvp(avpType, avpValue, False)
-            self.avpLength = 6 + self.vsaChild.avpLength
+        if allow_child and avp_type.startswith("3GPP"):
+            self.avp_type = 26                   # Vendor_Specific
+            self.avp_value = IntegerType(10415)  # 3GPP
+            self.vsa_child = RadiusAvp(avp_type, avp_value, False)
+            self.avp_length = 6 + len(self.vsa_child)
         else:
-            self.avpLength = 2 + len(avpValue)
+            self.avp_length = 2 + len(avp_value)
 
 
     def dump(self):
-        value = struct.pack(RADIUS_AVP_TMPL % len(self.avpValue),
-                self.avpType,
-                self.avpLength,
-                self.avpValue.dump())
+        """dump the binary representation of the AVP"""
+        value = struct.pack(RADIUS_AVP_TMPL % len(self.avp_value),
+                self.avp_type,
+                self.avp_length,
+                self.avp_value.dump())
 
-        if self.vsaChild:
-            return "".join((value, self.vsaChild.dump()))
+        if self.vsa_child:
+            return "".join((value, self.vsa_child.dump()))
 
         return value
 
 
     def __len__(self):
-        return self.avpLength
+        return self.avp_length
 
 
     def __str__(self):
-        avp = "AVP: Type:{%d}  Length:{%d}  Value:{%s}\n" % (self.avpType,
-                self.avpLength, str(self.avpValue))
-        if self.vsaChild:
-            avp = "".join((avp, " >> %s" % str(self.vsaChild)))
+        avp = "AVP: Type:{%d}  Length:{%d}  Value:{%s}\n" % (self.avp_type,
+                self.avp_length, str(self.avp_value))
+        if self.vsa_child:
+            avp = "".join((avp, "`- %s" % str(self.vsa_child)))
         return avp
 
 
@@ -164,19 +127,19 @@ class RadiusAcctRequest(object):
         self.pid = 0xf5
         self.length = 20    # length so far
         self.auth = hashlib.md5(secret)
-        self.avpList = []
+        self.avp_list = []
 
 
-    def addAVP(self, avp):
+    def add_avp(self, avp):
         if avp and isinstance(avp, RadiusAvp):
-            self.avpList.append(avp)
-            self.length += avp.avpLength
+            self.avp_list.append(avp)
+            self.length += avp.avp_length
 
 
     def dump(self):
-        """dump binary version of the Radius Request packet payload
-        including AVPs"""
-        avps = "".join([avp.dump() for avp in self.avpList])
+        """dump binary version of the Radius Request packet payload including
+        AVPs"""
+        avps = "".join([avp.dump() for avp in self.avp_list])
         header = struct.pack(RADIUS_HDR_TMPL,
                 self.code,
                 self.pid,
@@ -190,9 +153,9 @@ class RadiusAcctRequest(object):
 
 
     def __str__(self):
-        header = "HEADER:\nCode:{%d}  PID{%d}  Length:{%d}  Auth{%s}\n" % (self.code,
-                self.pid, self.length, self.auth.hexdigest())
-        avps = "".join([str(avp) for avp in self.avpList])
+        header = "HEADER:  Code:{%d}  PID{%d}  Length:{%d}  Auth{%s}\n" % (
+                self.code, self.pid, self.length, self.auth.hexdigest())
+        avps = "".join([str(avp) for avp in self.avp_list])
         return "".join((header, avps))
 
 
@@ -203,7 +166,7 @@ class AddressType(object):
         assert(type(addr) == str)
         self.addr = addr.strip()
         if ipv6:
-            raise NotImplementedError()
+            raise NotImplementedError("IPv6 not yet supported")
 
     def __str__(self):
         return self.addr
@@ -218,12 +181,13 @@ class AddressType(object):
         return struct.pack("!BBBB", *octets)
 
 
+
 class TextType(object):
     """Text data type"""
     def __init__(self, value):
         assert(type(value) == str)
         self.value = value
-        if len(self.value) == 0:
+        if not self.value:
             raise ValueError("Empty strings are not allowed (rfc2866)")
 
     def __len__(self):
@@ -234,6 +198,7 @@ class TextType(object):
 
     def dump(self):
         return struct.pack("!%ss" % len(self.value), self.value)
+
 
 
 class IntegerType(object):
@@ -258,25 +223,27 @@ class IntegerType(object):
         return struct.pack("!%dL" % self.length, *values)
 
 
-def createPacket(data):
-    """generate a binary version of the packet based on the current data"""
-    rad = RadiusAcctRequest(data.radiusSecret)
-    rad.addAVP(RadiusAvp("Acct_Status_Type", IntegerType(data.action)))
-    rad.addAVP(RadiusAvp("NAS_IP_Addr", AddressType(data.radiusDest)))
-    rad.addAVP(RadiusAvp("Framed_IP_Addr", AddressType(data.framedIp)))
-    if data.subsType == "imsi":
-        rad.addAVP(RadiusAvp("3GPP_IMSI", TextType(data.subsId)))
-    elif data.subsType == "imei":
-        rad.addAVP(RadiusAvp("3GPP_IMEISV", TextType(data.subsId)))
+
+def create_packet(config):
+    """generate a binary version of the packet based on the current config"""
+    rad = RadiusAcctRequest(config.radius_secret)
+    rad.add_avp(RadiusAvp("Acct_Status_Type", IntegerType(config.action)))
+    rad.add_avp(RadiusAvp("NAS_IP_Addr", AddressType(config.radius_dest)))
+    rad.add_avp(RadiusAvp("Framed_IP_Addr", AddressType(config.framed_ip)))
+    rad.add_avp(RadiusAvp("Framed_Protocol", IntegerType(FRAMED_PROTO_PPP)))
+    if config.subs_type == "imsi":
+        rad.add_avp(RadiusAvp("3GPP_IMSI", TextType(config.subs_id)))
+    elif config.subs_type == "imei":
+        rad.add_avp(RadiusAvp("3GPP_IMEISV", TextType(config.subs_id)))
     else:
         raise ValueError("Unknown type of subscriber identifier")
 
-    if data.verbose:
-        print str(rad)
+    debug(str(rad))
+
     return bytes(rad.dump())
 
 
-def sendPacket(destTuple, packet):
+def send_packet(destTuple, packet):
     """send the packet to the network"""
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 20)
@@ -284,35 +251,116 @@ def sendPacket(destTuple, packet):
     sock.close()
 
 
-def startStopSession(data):
-    """send start/stop session based on action in the data"""
-    sendPacket((data.radiusDest, data.radiusPort), createPacket(data))
+def start_stop_session(config):
+    """send start/stop session based on action in the config"""
+    send_packet((config.radius_dest, config.radius_port), create_packet(config))
 
 
-def restartSession(data, timeout=1):
+def restart_session(config):
     """restart session
     1. stop the current session
-    2. wait for <timeout>
-    3. start the new session with the given data
+    2. wait for <delay>
+    3. start the new session with the given config
     """
     import time
-    data.action = STOP
-    startStopSession(data)
-    time.sleep(timeout)
-    data.action = START
-    startStopSession(data)
+    config.action = STOP
+    start_stop_session(config)
+    time.sleep(config.delay)
+    config.action = START
+    start_stop_session(config)
+
+
+def parse_args(config):
+    """parse CLI arguments"""
+    parser = argparse.ArgumentParser(
+            description="Radius accounting session management tool",
+            argument_default=argparse.SUPPRESS)
+
+    parser.add_argument("-d", "--destination", dest="radius_dest",
+            help="ip of radius endpoint", required=False)
+
+    parser.add_argument("-p", "--secret", dest="radius_secret",
+            help="radius secret")
+
+    # mutually exclusive actions (start/stop/restart)
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument("-S", "--start", dest="action", required=False,
+            action="store_const", const=START, default=START,
+            help="Start session")
+
+    group.add_argument("-T", "--stop", dest="action", required=False,
+            action="store_const", const=STOP, help="Stop session")
+
+    group.add_argument("-R", "--restart", dest="action", required=False,
+            action="store_const", const=RESTART, help="restart session")
+
+    parser.add_argument("-i", "--id", dest="subs_id",
+            help="subscriber id default imsi out of testing")
+
+    parser.add_argument("-t", "--id-type", dest="subs_type",
+            choices=["imsi", "imei"],
+            help="subscriber id type { IMSI, IMEI }")
+
+    parser.add_argument("-f", "--framed-ip", dest="framed_ip",
+            help="framed ip")
+
+    parser.add_argument("-v", "--verbose", dest="verbose",
+            action="store_true", default=False,
+            help="enable verbose output")
+
+    parser.add_argument("--delay", dest="delay", default="1",
+            help="""the delay between stopping and starting the session
+            during the restart mode (-R/--restart)""")
+
+    args = parser.parse_args()
+    config.__dict__.update(args.__dict__)
+    return config
+
+
+def debug(message):
+    """debug output - printed only if the verbose config option is set"""
+    if config.verbose:
+        print message
+
+
+def main(config):
+    """main logic"""
+    action_strings = ["Restarting", "Starting", "Stoping"]
+
+    debug("%s the session" % action_strings[config.action])
+
+    if config.action == RESTART:
+        restart_session(config)
+    else:
+        start_stop_session(config)
 
 
 if __name__ == "__main__":
-    data = parseArgs(Data())
-    strAction = ["Restarting", "Starting", "Stoping"]
-    if data.verbose:
-        print "%s the session" % strAction[data.action]
+    config = Config()
+    use_cached = False
 
-    if data.action == RESTART:
-        restartSession(data)
-    else:
-        startStopSession(data)
+    # try loading the pickled configuration
+    try:
+        with open(PICKLED_FILE_NAME, "r") as f:
+            config = pickle.load(f)
+            use_cached = True
+    except IOError:
+        pass
 
+    # reading the event arguments and merging with the config
+    config = parse_args(config)
+
+    if use_cached:
+        debug("Cached config found. Loading...")
+
+    try:
+        main(config)      # main logic
+    except (ValueError, NotImplementedError) as e:
+        print "ERROR: %s" % s.message
+
+    # pickling the current configuration for future reuse
+    debug("Caching the current config for future use")
+    with open(PICKLED_FILE_NAME, "w") as f:
+        pickle.dump(config, f)
 
 # vim: set ts=4 sts=4 sw=4 tw=80 ai smarttab et list
