@@ -77,9 +77,8 @@ class Config(object):
         self.framed_ip ="10.0.0.1"
         self.calling_id = "00441234987654"
         self.called_id = "web.apn"
-        # T-Mobile / Germany
         self.subs_loc_info = struct.pack("!BBBBHH",
-                1,      # SAI
+                1,      # Location Type (SAI (1))
                 0x62,   # 2 octets MCC (Germany (262))
                 0x02,   # 1 octet MCC / 1 MNC
                 0x10,   # 2 octets MNC (T-Mobile (10))
@@ -111,7 +110,7 @@ class RadiusAvp(object):
         """dump the binary representation of the AVP"""
         value = struct.pack(RADIUS_AVP_TMPL % len(self.avp_value),
                 self.avp_type,
-                self.avp_length,
+                len(self),
                 self.avp_value.dump())
 
         if self.vsa_child:
@@ -126,7 +125,7 @@ class RadiusAvp(object):
 
     def __str__(self):
         avp = "AVP: Type:{%d}  Length:{%d}  Value:{%s}\n" % (self.avp_type,
-                self.avp_length, str(self.avp_value))
+                len(self), str(self.avp_value))
         if self.vsa_child:
             avp = "".join((avp, "`- %s" % str(self.vsa_child)))
         return avp
@@ -148,7 +147,7 @@ class RadiusAcctRequest(object):
         """add an AVP class to the list of the packets AVPs"""
         if avp and isinstance(avp, RadiusAvp):
             self.avp_list.append(avp)
-            self.length += avp.avp_length
+            self.length += len(avp)
 
 
     def compute_authenticator(self):
@@ -158,7 +157,7 @@ class RadiusAcctRequest(object):
         header = struct.pack(RADIUS_HDR_TMPL,
                 self.code,
                 self.pid,
-                self.length,
+                len(self),
                 bytes(self.auth))
         packet = "".join([header, avps, self.secret])
         self.auth = hashlib.md5(packet).digest()
@@ -172,7 +171,7 @@ class RadiusAcctRequest(object):
         header = struct.pack(RADIUS_HDR_TMPL,
                 self.code,
                 self.pid,
-                self.length,
+                len(self),
                 self.auth)
         return "".join([header, avps])
 
@@ -184,7 +183,7 @@ class RadiusAcctRequest(object):
     def __str__(self):
         self.compute_authenticator()
         header = "HEADER:  Code:{%d}  PID{%d}  Length:{%d}  Auth{%s}\n" % (
-                self.code, self.pid, self.length, self.auth.encode("hex"))
+                self.code, self.pid, len(self), self.auth.encode("hex"))
         avps = "".join([str(avp) for avp in self.avp_list])
         return "".join((header, avps))
 
@@ -251,7 +250,7 @@ class IntegerType(object):
     def dump(self):
         values = [self.value >> (n*32) & 0xffffffff for n in range(self.length)]
         values.reverse()
-        return struct.pack("!%dL" % self.length, *values)
+        return struct.pack("!%dL" % len(values), *values)
 
 
 
@@ -354,7 +353,14 @@ def parse_args(config):
             help="""the delay between stopping and starting the session
             during the restart mode (-R/--restart)""")
 
+    parser.add_argument("--clean", dest="cleancache", default=False,
+            action="store_true",
+            help="""clean the cached configuration""")
+
     args = parser.parse_args()
+    if args.cleancache:
+        debug("cleaning cache")
+        config = Config()
     config.__dict__.update(args.__dict__)
     return config
 
@@ -378,7 +384,6 @@ def main(config):
 
 
 if __name__ == "__main__":
-    config = Config()
     use_cached = False
 
     # try loading the pickled configuration
@@ -387,12 +392,12 @@ if __name__ == "__main__":
             config = pickle.load(f)
             use_cached = True
     except IOError:
-        pass
+        config = Config()
 
     # reading the event arguments and merging with the config
     config = parse_args(config)
 
-    if use_cached:
+    if use_cached and not config.cleancache:
         debug("Cached config found. Loading...")
 
     try:
