@@ -47,15 +47,17 @@ RESTART, START, STOP = range(3) # also ACCT_STATUS_TYPE start/stop
 
 # Attributes
 AVP_TYPE = {
-    "NAS_IP_Addr" : 4,
-    "Framed_Protocol" : 7,
-    "Framed_IP_Addr" : 8,
+    "User-Name" : 1,
+    "NAS-IP-Address" : 4,
+    "Framed-Protocol" : 7,
+    "Framed-IP-Address" : 8,
     "Vendor_Specific" : 26,
-    "Called_Station_Id" : 30,
-    "Calling_Station_Id" : 31,
-    "Acct_Status_Type" : 40,
-    "3GPP_IMSI" : 1,
-    "3GPP_IMEISV" : 20,
+    "Called-Station-Id" : 30,
+    "Calling-Station-Id" : 31,
+    "Acct-Status-Type" : 40,
+    "3GPP-IMSI" : 1,
+    "3GPP-IMEISV" : 20,
+    "3GPP-User-Location-Info" : 22
 }
 
 # Constants
@@ -68,10 +70,14 @@ class Config(object):
         self.radius_dest = "127.0.0.1"
         self.radius_port = 1813
         self.radius_secret = "secret"
+        self.username = "johndoe"
         self.verbose = False
         self.subs_id = "12345678901234"
         self.subs_type = "imsi"
         self.framed_ip ="10.0.0.1"
+        self.calling_id = "00441234987654"
+        self.called_id = "web.apn"
+        self.subs_loc_info= "f5f5"
         self.delay = 1
         self.action = START
         self.verbose = False
@@ -210,9 +216,7 @@ class IntegerType(object):
         self.length = length
 
     def __len__(self):
-        length = len(hex(self.value))-2
-        length += length % 2
-        return max(4, length / 2)
+        return self.length * 4
 
     def __str__(self):
         return str(self.value)
@@ -227,14 +231,19 @@ class IntegerType(object):
 def create_packet(config):
     """generate a binary version of the packet based on the current config"""
     rad = RadiusAcctRequest(config.radius_secret)
-    rad.add_avp(RadiusAvp("Acct_Status_Type", IntegerType(config.action)))
-    rad.add_avp(RadiusAvp("NAS_IP_Addr", AddressType(config.radius_dest)))
-    rad.add_avp(RadiusAvp("Framed_IP_Addr", AddressType(config.framed_ip)))
-    rad.add_avp(RadiusAvp("Framed_Protocol", IntegerType(FRAMED_PROTO_PPP)))
+    rad.add_avp(RadiusAvp("User-Name", TextType(config.username)))
+    rad.add_avp(RadiusAvp("Acct-Status-Type", IntegerType(config.action)))
+    rad.add_avp(RadiusAvp("NAS-IP-Address", AddressType(config.radius_dest)))
+    rad.add_avp(RadiusAvp("Framed-IP-Address", AddressType(config.framed_ip)))
+    rad.add_avp(RadiusAvp("Framed-Protocol", IntegerType(FRAMED_PROTO_PPP)))
+    rad.add_avp(RadiusAvp("Calling-Station-Id", TextType(config.calling_id)))
+    rad.add_avp(RadiusAvp("Called-Station-Id", TextType(config.called_id)))
+    rad.add_avp(RadiusAvp("3GPP-User-Location-Info",
+        TextType(config.subs_loc_info)))
     if config.subs_type == "imsi":
-        rad.add_avp(RadiusAvp("3GPP_IMSI", TextType(config.subs_id)))
+        rad.add_avp(RadiusAvp("3GPP-IMSI", TextType(config.subs_id)))
     elif config.subs_type == "imei":
-        rad.add_avp(RadiusAvp("3GPP_IMEISV", TextType(config.subs_id)))
+        rad.add_avp(RadiusAvp("3GPP-IMEISV", TextType(config.subs_id)))
     else:
         raise ValueError("Unknown type of subscriber identifier")
 
@@ -265,7 +274,7 @@ def restart_session(config):
     import time
     config.action = STOP
     start_stop_session(config)
-    time.sleep(config.delay)
+    time.sleep(float(config.delay))
     config.action = START
     start_stop_session(config)
 
@@ -292,10 +301,10 @@ def parse_args(config):
             action="store_const", const=STOP, help="Stop session")
 
     group.add_argument("-R", "--restart", dest="action", required=False,
-            action="store_const", const=RESTART, help="restart session")
+            action="store_const", const=RESTART, help="Restart session")
 
     parser.add_argument("-i", "--id", dest="subs_id",
-            help="subscriber id default imsi out of testing")
+            help="subscriber id { default imsi }")
 
     parser.add_argument("-t", "--id-type", dest="subs_type",
             choices=["imsi", "imei"],
@@ -307,6 +316,12 @@ def parse_args(config):
     parser.add_argument("-v", "--verbose", dest="verbose",
             action="store_true", default=False,
             help="enable verbose output")
+
+    parser.add_argument("-c", "--calling-id", dest="calling_id",
+            help="3GPP calling id")
+
+    parser.add_argument("-C", "--called-id", dest="called_id",
+            help="3GPP called id")
 
     parser.add_argument("--delay", dest="delay", default="1",
             help="""the delay between stopping and starting the session
