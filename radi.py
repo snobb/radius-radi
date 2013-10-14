@@ -88,6 +88,9 @@ class Config(object):
         self.action = START
         self.verbose = False
 
+    def update(self, config):
+        self.__dict__.update(config)
+
 
 
 class RadiusAvp(object):
@@ -358,11 +361,7 @@ def parse_args(config):
             help="""clean the cached configuration""")
 
     args = parser.parse_args()
-    if args.cleancache:
-        debug("cleaning cache")
-        config = Config()
-    config.__dict__.update(args.__dict__)
-    return config
+    return args.__dict__
 
 
 def debug(message):
@@ -384,24 +383,26 @@ def main(config):
 
 
 if __name__ == "__main__":
-    use_cached = False
+    config = Config()
 
     # try loading the pickled configuration
     try:
         with open(PICKLED_FILE_NAME, "r") as f:
-            config = pickle.load(f)
-            use_cached = True
+            cache = pickle.load(f)
     except IOError:
-        config = Config()
+        cache = None
 
-    # reading the event arguments and merging with the config
-    config = parse_args(config)
+    # reading the event arguments
+    args = parse_args(config)
 
-    if use_cached and not config.cleancache:
+    if cache and not args["cleancache"]:
         debug("Cached config found. Loading...")
+        config = cache
+
+    config.update(args)     # merging configuration
 
     try:
-        main(config)      # main logic
+        main(config)        # main logic
     except (ValueError, NotImplementedError) as e:
         print "ERROR: %s" % e.message
 
