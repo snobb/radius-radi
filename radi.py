@@ -77,7 +77,14 @@ class Config(object):
         self.framed_ip ="10.0.0.1"
         self.calling_id = "00441234987654"
         self.called_id = "web.apn"
-        self.subs_loc_info= "f5f5"
+        # T-Mobile / Germany
+        self.subs_loc_info = struct.pack("!BBBBHH",
+                1,      # SAI
+                0x62,   # 2 octets MCC (Germany (262))
+                0x02,   # 1 octet MCC / 1 MNC
+                0x10,   # 2 octets MNC (T-Mobile (10))
+                0xffff, # LAC
+                0xffff) # CI
         self.delay = 1
         self.action = START
         self.verbose = False
@@ -186,10 +193,11 @@ class RadiusAcctRequest(object):
 class AddressType(object):
     """IP address data type"""
     def __init__(self, addr, ipv6=False):
-        assert(type(addr) == str)
-        self.addr = addr.strip()
+        if type(addr) != str:
+            raise ValueError("String expected")
         if ipv6:
             raise NotImplementedError("IPv6 not yet supported")
+        self.addr = addr.strip()
 
     def __str__(self):
         return self.addr
@@ -208,16 +216,17 @@ class AddressType(object):
 class TextType(object):
     """Text data type"""
     def __init__(self, value):
-        assert(type(value) == str)
-        self.value = value
-        if not self.value:
+        if not value:
             raise ValueError("Empty strings are not allowed (rfc2866)")
+        if type(value) != str:
+            raise ValueError("String expected")
+        self.value = value
 
     def __len__(self):
         return len(self.value)
 
     def __str__(self):
-        return self.value
+        return str(self.value)
 
     def dump(self):
         return struct.pack("!%ss" % len(self.value), self.value)
@@ -228,7 +237,8 @@ class IntegerType(object):
     """Integer data type"""
     def __init__(self, value, length=1):
         """length is set in 4byte chunks. eg. length = 4 == 16bytes"""
-        assert(type(value) == int)
+        if type(value) != int:
+            raise ValueError("Integer expected")
         self.value = value
         self.length = length
 
