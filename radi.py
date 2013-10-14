@@ -62,7 +62,7 @@ AVP_TYPE = {
 
 # Constants
 FRAMED_PROTO_PPP = 1
-PICKLED_FILE_NAME = "radi.dat"
+PICKLED_FILE_NAME = "./.%s.dat" % __file__
 
 class Config(object):
     """config storage object"""
@@ -132,25 +132,41 @@ class RadiusAcctRequest(object):
         self.code = 4
         self.pid = 0xf5
         self.length = 20    # length so far
-        self.auth = hashlib.md5(secret)
+        self.auth = IntegerType(0, length=4)
+        self.secret = secret
         self.avp_list = []
 
 
     def add_avp(self, avp):
+        """add an AVP class to the list of the packets AVPs"""
         if avp and isinstance(avp, RadiusAvp):
             self.avp_list.append(avp)
             self.length += avp.avp_length
 
 
-    def dump(self):
-        """dump binary version of the Radius Request packet payload including
-        AVPs"""
+    def compute_authenticator(self):
+        """compute authetnicator of the radius request"""
+        self.auth = IntegerType(0, length=4)
         avps = "".join([avp.dump() for avp in self.avp_list])
         header = struct.pack(RADIUS_HDR_TMPL,
                 self.code,
                 self.pid,
                 self.length,
-                self.auth.digest())
+                bytes(self.auth))
+        packet = "".join([header, avps, self.secret])
+        self.auth = hashlib.md5(packet).digest()
+
+
+    def dump(self):
+        """dump binary version of the Radius Request packet payload including
+        AVPs"""
+        self.compute_authenticator()
+        avps = "".join([avp.dump() for avp in self.avp_list])
+        header = struct.pack(RADIUS_HDR_TMPL,
+                self.code,
+                self.pid,
+                self.length,
+                self.auth)
         return "".join([header, avps])
 
 
@@ -159,8 +175,9 @@ class RadiusAcctRequest(object):
 
 
     def __str__(self):
+        self.compute_authenticator()
         header = "HEADER:  Code:{%d}  PID{%d}  Length:{%d}  Auth{%s}\n" % (
-                self.code, self.pid, self.length, self.auth.hexdigest())
+                self.code, self.pid, self.length, self.auth.encode("hex"))
         avps = "".join([str(avp) for avp in self.avp_list])
         return "".join((header, avps))
 
@@ -371,7 +388,7 @@ if __name__ == "__main__":
     try:
         main(config)      # main logic
     except (ValueError, NotImplementedError) as e:
-        print "ERROR: %s" % s.message
+        print "ERROR: %s" % e.message
 
     # pickling the current configuration for future reuse
     debug("Caching the current config for future use")
