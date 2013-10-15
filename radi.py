@@ -51,6 +51,8 @@ AVP_TYPE = {
     "NAS-IP-Address" : 4,
     "Framed-Protocol" : 7,
     "Framed-IP-Address" : 8,
+    "Framed-IP-Netmask" : 9,
+    "Framed-IPv6-Prefix" : 97,
     "Vendor_Specific" : 26,
     "Called-Station-Id" : 30,
     "Calling-Station-Id" : 31,
@@ -75,6 +77,7 @@ class Config(object):
         self.subs_id = "12345678901234"
         self.subs_type = "imsi"
         self.framed_ip ="10.0.0.1"
+        self.framed_mask = "255.255.255.255"
         self.calling_id = "00441234987654"
         self.called_id = "web.apn"
         self.subs_loc_info = struct.pack("!BBBBHH",
@@ -193,25 +196,32 @@ class RadiusAcctRequest(object):
 
 
 class AddressType(object):
-    """IP address data type"""
-    def __init__(self, addr, ipv6=False):
-        if type(addr) != str:
+    """IP ip_string data type"""
+    def __init__(self, ip_string):
+        if type(ip_string) != str:
             raise ValueError("String expected")
-        if ipv6:
-            raise NotImplementedError("IPv6 not yet supported")
-        self.addr = addr.strip()
+
+        if ":" in ip_string:
+            self.family = socket.AF_INET6
+            raise NotImplementedError("IPv6 is not supported")
+        else:
+            self.family = socket.AF_INET
+
+        self.ip_string = ip_string
+
+        try:
+            self.bin_ip_string = socket.inet_pton(self.family, ip_string)
+        except socket.error:
+            raise ValueError("Invalid IP ip_string")
 
     def __str__(self):
-        return self.addr
+        return self.ip_string
 
     def __len__(self):
-        return 4
+        return len(self.bin_ip_string)
 
     def dump(self):
-        octets = [int(i) for i in self.addr.split(".")]
-        if (len(octets) != 4):
-            raise ValueError("Invalid IP address format")
-        return struct.pack("!BBBB", *octets)
+        return bytes(self.bin_ip_string)
 
 
 
@@ -264,6 +274,7 @@ def create_packet(config):
     rad.add_avp(RadiusAvp("Acct-Status-Type", IntegerType(config.action)))
     rad.add_avp(RadiusAvp("NAS-IP-Address", AddressType(config.radius_dest)))
     rad.add_avp(RadiusAvp("Framed-IP-Address", AddressType(config.framed_ip)))
+    rad.add_avp(RadiusAvp("Framed-IP-Netmask", AddressType(config.framed_mask)))
     rad.add_avp(RadiusAvp("Framed-Protocol", IntegerType(FRAMED_PROTO_PPP)))
     rad.add_avp(RadiusAvp("Calling-Station-Id", TextType(config.calling_id)))
     rad.add_avp(RadiusAvp("Called-Station-Id", TextType(config.called_id)))
@@ -342,6 +353,9 @@ def parse_args(config):
     parser.add_argument("-f", "--framed-ip", dest="framed_ip",
             help="framed ip")
 
+    parser.add_argument("-m", "--framed-netmask", dest="framed_mask",
+            help="framed netmask")
+
     parser.add_argument("-v", "--verbose", dest="verbose",
             action="store_true", default=False,
             help="enable verbose output")
@@ -371,20 +385,6 @@ def debug(message):
 
 
 def main(config):
-    """main logic"""
-    action_strings = ["Restarting", "Starting", "Stoping"]
-
-    debug("%s the session" % action_strings[config.action])
-
-    if config.action == RESTART:
-        restart_session(config)
-    else:
-        start_stop_session(config)
-
-
-if __name__ == "__main__":
-    config = Config()
-
     # try loading the pickled configuration
     try:
         with open(PICKLED_FILE_NAME, "r") as f:
@@ -401,14 +401,27 @@ if __name__ == "__main__":
 
     config.update(args)     # merging configuration
 
-    try:
-        main(config)        # main logic
-    except (ValueError, NotImplementedError) as e:
-        print "ERROR: %s" % e.message
+    action_strings = ["Restarting", "Starting", "Stoping"]
+
+    debug("%s the session" % action_strings[config.action])
+
+    if config.action == RESTART:
+        restart_session(config)
+    else:
+        start_stop_session(config)
 
     # pickling the current configuration for future reuse
     debug("Caching the current config for future use")
     with open(PICKLED_FILE_NAME, "w") as f:
         pickle.dump(config, f)
+
+
+if __name__ == "__main__":
+    config = Config()
+
+    try:
+        main(config)        # main logic
+    except (ValueError, NotImplementedError, IOError) as e:
+        print "ERROR: %s" % e.message
 
 # vim: set ts=4 sts=4 sw=4 tw=80 ai smarttab et list
