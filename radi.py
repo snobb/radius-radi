@@ -52,15 +52,19 @@ AVP_TYPE = {
     "Framed-Protocol" : 7,
     "Framed-IP-Address" : 8,
     "Framed-IP-Netmask" : 9,
-    "Framed-IPv6-Prefix" : 97,
     "Vendor_Specific" : 26,
     "Called-Station-Id" : 30,
     "Calling-Station-Id" : 31,
     "Acct-Status-Type" : 40,
+    "NAS-IPv6-Address" : 95,
+    "Framed-IPv6-Prefix" : 97,
+
+    # Vendor specific (26)
     "3GPP-IMSI" : 1,
     "3GPP-IMEISV" : 20,
     "3GPP-User-Location-Info" : 22
 }
+
 
 # Constants
 FRAMED_PROTO_PPP = 1
@@ -73,11 +77,10 @@ class Config(object):
         self.radius_port = 1813
         self.radius_secret = "secret"
         self.username = "johndoe"
-        self.verbose = False
         self.subs_id = "12345678901234"
         self.subs_type = "imsi"
         self.framed_ip ="10.0.0.1"
-        self.framed_mask = "255.255.255.255"
+        self.framed_mask = 32
         self.calling_id = "00441234987654"
         self.called_id = "web.apn"
         self.subs_loc_info = struct.pack("!BBBBHH",
@@ -91,25 +94,26 @@ class Config(object):
         self.action = START
         self.verbose = False
 
+
     def update(self, config):
+        """merge the current object with 'config' dictionary"""
         self.__dict__.update(config)
 
 
 
 class RadiusAvp(object):
-    """simple radius AVP implementation"""
+    """Radius avp implementations"""
     def __init__(self, avp_type, avp_value, allow_child=True):
-        self.avp_type = AVP_TYPE[avp_type]
-        self.avp_value = avp_value
         self.vsa_child = None
-
+        self.avp_type = AVP_TYPE[avp_type]
         if allow_child and avp_type.startswith("3GPP"):
             self.avp_type = 26                   # Vendor_Specific
             self.avp_value = IntegerType(10415)  # 3GPP
             self.vsa_child = RadiusAvp(avp_type, avp_value, False)
             self.avp_length = 6 + len(self.vsa_child)
         else:
-            self.avp_length = 2 + len(avp_value)
+            self.avp_value = avp_value
+            self.avp_length = 2 + len(self.avp_value)
 
 
     def dump(self):
@@ -118,10 +122,8 @@ class RadiusAvp(object):
                 self.avp_type,
                 len(self),
                 self.avp_value.dump())
-
         if self.vsa_child:
             return "".join((value, self.vsa_child.dump()))
-
         return value
 
 
@@ -130,10 +132,12 @@ class RadiusAvp(object):
 
 
     def __str__(self):
-        avp = "AVP: Type:{%d}  Length:{%d}  Value:{%s}\n" % (self.avp_type,
-                len(self), str(self.avp_value))
+        avp = "AVP: Type:{%d}  Length:{%d}  Value:{%s}\n" % (
+                self.avp_type,
+                len(self),
+                str(self.avp_value))
         if self.vsa_child:
-            avp = "".join((avp, "`- %s" % str(self.vsa_child)))
+                return "".join((avp, "`- %s" % str(self.vsa_child)))
         return avp
 
 
@@ -170,8 +174,8 @@ class RadiusAcctRequest(object):
 
 
     def dump(self):
-        """dump binary version of the Radius Request packet payload including
-        AVPs"""
+        """dump binary version of the Radius Request packet payload
+        including AVPs"""
         self.compute_authenticator()
         avps = "".join([avp.dump() for avp in self.avp_list])
         header = struct.pack(RADIUS_HDR_TMPL,
@@ -197,16 +201,11 @@ class RadiusAcctRequest(object):
 
 class AddressType(object):
     """IP ip_string data type"""
-    def __init__(self, ip_string):
+    def __init__(self, ip_string, is_ipv6=False):
         if type(ip_string) != str:
             raise ValueError("String expected")
 
-        if ":" in ip_string:
-            self.family = socket.AF_INET6
-            raise NotImplementedError("IPv6 is not supported")
-        else:
-            self.family = socket.AF_INET
-
+        self.family = socket.AF_INET6 if is_ipv6 else socket.AF_INET
         self.ip_string = ip_string
 
         try:
@@ -214,11 +213,14 @@ class AddressType(object):
         except socket.error:
             raise ValueError("Invalid IP ip_string")
 
+
     def __str__(self):
         return self.ip_string
 
+
     def __len__(self):
         return len(self.bin_ip_string)
+
 
     def dump(self):
         return bytes(self.bin_ip_string)
@@ -234,11 +236,14 @@ class TextType(object):
             raise ValueError("String expected")
         self.value = value
 
+
     def __len__(self):
         return len(self.value)
 
+
     def __str__(self):
         return str(self.value)
+
 
     def dump(self):
         return struct.pack("!%ss" % len(self.value), self.value)
@@ -254,17 +259,82 @@ class IntegerType(object):
         self.value = value
         self.length = length
 
+
     def __len__(self):
         return self.length * 4
+
 
     def __str__(self):
         return str(self.value)
 
+
     def dump(self):
-        values = [self.value >> (n*32) & 0xffffffff for n in range(self.length)]
-        values.reverse()
+        values = [self.value >> (n*32) & 0xffffffff
+                for n in range(self.length-1, -1, -1)]
         return struct.pack("!%dL" % len(values), *values)
 
+
+
+class ByteType(object):
+    """Byte data type"""
+    def __init__(self, value):
+        if type(value) != int:
+            raise ValueError("Integer expected")
+        if value < 0 or value > 0xff:
+            raise ValueError("byte - type overflow")
+        self.value = value
+
+
+    def __len__(self):
+        return 1
+
+
+    def __str__(self):
+        return str(self.value)
+
+
+    def dump(self):
+        """dump binary value"""
+        return struct.pack("!B", self.value)
+
+
+
+class ContainerType(object):
+    """Container type allowing to join several values togeter"""
+    def __init__(self, *args):
+        self.values = args
+
+
+    def __len__(self):
+        return sum([len(value) for value in self.values])
+
+
+    def __str__(self):
+        return "".join([str(value) for value in self.values])
+
+
+    def dump(self):
+        """dump binary representaton of the contained values"""
+        values_binary = "".join([value.dump() for value in self.values])
+        return bytes(values_binary)
+
+
+
+class AddressAction(argparse.Action):
+    """custom action for processing IP addresses by argparse
+    Check if netmask is specified and if it is, update the configuration"""
+    def __call__(self, parser, namespace, values, options, option_string=None):
+        if "/" in values:
+            values, mask = values.split("/")
+            if mask.isdigit():
+                setattr(namespace, "framed_mask", min(int(mask), 128))
+        setattr(namespace, self.dest, values)
+
+
+
+def is_ipv6(address):
+    """returns true if the IP is IPv6"""
+    return (":" in address)
 
 
 def create_packet(config):
@@ -272,14 +342,33 @@ def create_packet(config):
     rad = RadiusAcctRequest(config.radius_secret)
     rad.add_avp(RadiusAvp("User-Name", TextType(config.username)))
     rad.add_avp(RadiusAvp("Acct-Status-Type", IntegerType(config.action)))
-    rad.add_avp(RadiusAvp("NAS-IP-Address", AddressType(config.radius_dest)))
-    rad.add_avp(RadiusAvp("Framed-IP-Address", AddressType(config.framed_ip)))
-    rad.add_avp(RadiusAvp("Framed-IP-Netmask", AddressType(config.framed_mask)))
+
+    if is_ipv6(config.radius_dest):
+        rad.add_avp(RadiusAvp("NAS-IPv6-Address",
+            AddressType(config.radius_dest, True)))
+    else:
+        rad.add_avp(RadiusAvp("NAS-IP-Address",
+            AddressType(config.radius_dest)))
+
+    if is_ipv6(config.framed_ip):
+        rad.add_avp(RadiusAvp("Framed-IPv6-Prefix",
+            ContainerType(
+                ByteType(0),
+                ByteType(config.framed_mask),
+                AddressType(config.framed_ip, True))))
+    else:
+        rad.add_avp(RadiusAvp("Framed-IP-Address",
+            AddressType(config.framed_ip)))
+        rad.add_avp(RadiusAvp("Framed-IP-Netmask",
+            AddressType(bits_to_ip4mask(config.framed_mask))))
+
     rad.add_avp(RadiusAvp("Framed-Protocol", IntegerType(FRAMED_PROTO_PPP)))
     rad.add_avp(RadiusAvp("Calling-Station-Id", TextType(config.calling_id)))
     rad.add_avp(RadiusAvp("Called-Station-Id", TextType(config.called_id)))
+
     rad.add_avp(RadiusAvp("3GPP-User-Location-Info",
         TextType(config.subs_loc_info)))
+
     if config.subs_type == "imsi":
         rad.add_avp(RadiusAvp("3GPP-IMSI", TextType(config.subs_id)))
     elif config.subs_type == "imei":
@@ -292,10 +381,25 @@ def create_packet(config):
     return bytes(rad.dump())
 
 
+def bits_to_ip4mask(num_bits):
+    """convert integer number of bits in ipv4 netmask to string representation
+    of the mask. Eg. '255.255.255.0'"""
+    if 0 <= num_bits <= 32:
+        bits = 0xffffffff ^ ((1 << (32 - num_bits)) - 1)
+        ip4_bytes = [str((bits >> 8*n) & 0xff) for n in range(3, -1, -1)]
+        return ".".join(ip4_bytes)
+    else:
+        raise ValueError("invalid IPv4 mask specified")
+
+
 def send_packet(destTuple, packet):
     """send the packet to the network"""
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 20)
+    if is_ipv6(destTuple[0]):
+        sock = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
+        sock.setsockopt(socket.IPPROTO_IPV6, socket.IP_MULTICAST_TTL, 20)
+    else:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 20)
     sock.sendto(packet, destTuple)
     sock.close()
 
@@ -351,14 +455,7 @@ def parse_args(config):
             help="subscriber id type { IMSI, IMEI }")
 
     parser.add_argument("-f", "--framed-ip", dest="framed_ip",
-            help="framed ip")
-
-    parser.add_argument("-m", "--framed-netmask", dest="framed_mask",
-            help="framed netmask")
-
-    parser.add_argument("-v", "--verbose", dest="verbose",
-            action="store_true", default=False,
-            help="enable verbose output")
+            action=AddressAction, help="framed ip")
 
     parser.add_argument("-c", "--calling-id", dest="calling_id",
             help="3GPP calling id")
@@ -374,33 +471,36 @@ def parse_args(config):
             action="store_true",
             help="""clean the cached configuration""")
 
+    parser.add_argument("-v", "--verbose", dest="verbose",
+            action="store_true", default=False,
+            help="enable verbose output")
+
     args = parser.parse_args()
     return args.__dict__
 
 
-def debug(message):
+def debug(message, force=False):
     """debug output - printed only if the verbose config option is set"""
-    if config.verbose:
+    if config.verbose or force:
         print message
 
 
 def main(config):
-    # try loading the pickled configuration
-    try:
-        with open(PICKLED_FILE_NAME, "r") as f:
-            cache = pickle.load(f)
-    except IOError:
-        cache = None
-
     # reading the event arguments
     args = parse_args(config)
 
-    if cache and not args["cleancache"]:
-        debug("Cached config found. Loading...")
-        config = cache
+    # try loading the pickled configuration
+    if not args["cleancache"]:
+        try:
+            with open(PICKLED_FILE_NAME, "r") as f:
+                cache = pickle.load(f)
+            config.update(cache.__dict__)
+            if args["verbose"]:
+                debug("Cache found. Loading...", force=True)
+        except IOError:
+            cache = None
 
     config.update(args)     # merging configuration
-
     action_strings = ["Restarting", "Starting", "Stoping"]
 
     debug("%s the session" % action_strings[config.action])
