@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-
-# radi.py
-# Author: Aleksei Kozadaev
+#
+# radi-getopt.py
+# Author: Aleksei Kozadaev (2013)
 #
 
 import getopt, sys
