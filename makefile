@@ -4,3 +4,7 @@ test:
 
 run:
 	python radi.py
+
+clean:
+	-rm -rf *.pyc
+	-rm -rf tests/*.pyc

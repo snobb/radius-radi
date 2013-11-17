@@ -1,12 +1,14 @@
 #!/usr/bin/env python
 #
 # radi.py
-# Author: Aleksei Kozadaev
+# Author: Aleksei Kozadaev (2013)
 #
 
-import argparse
+import getopt, sys
 import struct, socket
 import pickle, hashlib
+
+__version__ = "0.02"
 
 # Radius-Request
 #    0                   1                   2                   3
@@ -161,7 +163,7 @@ class RadiusAcctRequest(object):
 
 
     def compute_authenticator(self):
-        """compute authetnicator of the radius request"""
+        """compute authenticator of the radius request"""
         self.auth = IntegerType(0, length=4)
         avps = "".join([avp.dump() for avp in self.avp_list])
         header = struct.pack(RADIUS_HDR_TMPL,
@@ -300,7 +302,7 @@ class ByteType(object):
 
 
 class ContainerType(object):
-    """Container type allowing to join several values togeter"""
+    """Container type allowing to join several values together"""
     def __init__(self, *args):
         self.values = args
 
@@ -314,22 +316,9 @@ class ContainerType(object):
 
 
     def dump(self):
-        """dump binary representaton of the contained values"""
+        """dump binary representation of the contained values"""
         values_binary = "".join([value.dump() for value in self.values])
         return bytes(values_binary)
-
-
-
-class AddressAction(argparse.Action):
-    """custom action for processing IP addresses by argparse
-    Check if netmask is specified and if it is, update the configuration"""
-    def __call__(self, parser, namespace, values, options, option_string=None):
-        if "/" in values:
-            values, mask = values.split("/")
-            if mask.isdigit():
-                setattr(namespace, "framed_mask", min(int(mask), 128))
-        setattr(namespace, self.dest, values)
-
 
 
 def is_ipv6(address):
@@ -423,60 +412,94 @@ def restart_session(config):
     start_stop_session(config)
 
 
-def parse_args(config):
+def usage():
+    print("Radius accounting session management tool\n\n"
+        "usage: radi.py [-h] [-d RADIUS_DEST] [-p RADIUS_SECRET]"
+        " [-S | -T | -R]\n"
+        "               [-i SUBS_ID] [-t {imsi,imei}] [-f FRAMED_IP]"
+        " [-c CALLING_ID]\n"
+        "               [-C CALLED_ID] [-D DELAY] [-L] [-v]\n\n"
+        "optional arguments:\n"
+        "  -h, --help            show this help message and exit\n"
+        "  -d RADIUS_DEST, --destination RADIUS_DEST\n"
+        "                        ip of radius endpoint\n"
+        "  -p RADIUS_SECRET, --secret RADIUS_SECRET\n"
+        "                        radius secret\n"
+        "  -S, --start           start session\n"
+        "  -T, --stop            stop session\n"
+        "  -R, --restart         restart session\n"
+        "  -i SUBS_ID, --id SUBS_ID\n"
+        "                        subscriber id { default imsi }\n"
+        "  -t {imsi,imei}, --id-type {imsi,imei}\n"
+        "                        subscriber id type { IMSI, IMEI }\n"
+        "  -f FRAMED_IP, --framed-ip FRAMED_IP\n"
+        "                        framed ip\n"
+        "  -c CALLING_ID, --calling-id CALLING_ID\n"
+        "                        3GPP calling id\n"
+        "  -C CALLED_ID, --called-id CALLED_ID\n"
+        "                        3GPP called id\n"
+        "  -D, --delay DELAY     the delay between stopping and starting\n"
+        "                        the session in the restart mode (-R/--restart)\n"
+        "  -L, --clean           clean the cached configuration\n"
+        "  -v, --verbose         enable verbose output\n\n"
+        "PLEASE NOTE: If action is specified multiple times, the last one\n"
+        "             will be used. Eg. -S -R -T will run the session\n"
+        "             stop (-T/--stop).\n")
+
+
+def parse_args():
     """parse CLI arguments"""
-    parser = argparse.ArgumentParser(
-            description="Radius accounting session management tool",
-            argument_default=argparse.SUPPRESS)
+    config = dict()
+    config["name"] = sys.argv.pop(0)
+    try:
+        opt_list, arg_list = getopt.getopt(sys.argv, "hd:p:STRi:t:f:c:C:D:Lv",
+                ["help", "destination", "secret", "start", "stop", "restart",
+                "id", "id-type", "framed-ip", "calling-id", "called_id",
+                "delay", "clean", "verbose"])
+    except getopt.GetoptError as err:
+        usage()
+        print "\n%s" % str(err)
+        sys.exit(2)
 
-    parser.add_argument("-d", "--destination", dest="radius_dest",
-            help="ip of radius endpoint", required=False)
+    for opt, value in opt_list:
+        if opt in ("-h", "--help"):
+            usage()
+            sys.exit(0)
+        elif opt in ("-d", "--destination"):
+            config["radius_dest"] = value
+        elif opt in ("-p", "--secret"):
+            config["radius_secret"] = value
+        elif opt in ("-S", "--start"):
+            config["action"] = START
+        elif opt in ("-T", "--stop"):
+            config["action"] = STOP
+        elif opt in ("-R", "--restart"):
+            config["action"] = RESTART
+        elif opt in ("-i", "--id"):
+            config["subs_id"] = value
+        elif opt in ("-t", "--id-type"):
+            if value.lower() in ("imsi", "imei"):
+                config["subs_type"] = value.lower()
+            else:
+                raise ValueError("invalid id-type value")
+        elif opt in ("-f", "--framed-ip"):
+            if "/" in value:
+                value, mask = value.split("/")
+                if mask.isdigit():
+                    config["framed_mask"] = min(int(mask), 128)
+            config["framed_ip"] = value
+        elif opt in ("-c", "--calling-id"):
+            config["calling_id"] = value
+        elif opt in ("-C", "--called-id"):
+            config["called_id"] = value
+        elif opt in ("-D", "--delay"):
+            config["delay"] = value
+        elif opt in ("-L", "--clean"):
+            config["cleancache"] = True
+        elif opt in ("-v", "--verbose"):
+            config["verbose"] = True
 
-    parser.add_argument("-p", "--secret", dest="radius_secret",
-            help="radius secret")
-
-    # mutually exclusive actions (start/stop/restart)
-    group = parser.add_mutually_exclusive_group()
-    group.add_argument("-S", "--start", dest="action", required=False,
-            action="store_const", const=START, default=START,
-            help="Start session")
-
-    group.add_argument("-T", "--stop", dest="action", required=False,
-            action="store_const", const=STOP, help="Stop session")
-
-    group.add_argument("-R", "--restart", dest="action", required=False,
-            action="store_const", const=RESTART, help="Restart session")
-
-    parser.add_argument("-i", "--id", dest="subs_id",
-            help="subscriber id { default imsi }")
-
-    parser.add_argument("-t", "--id-type", dest="subs_type",
-            choices=["imsi", "imei"],
-            help="subscriber id type { IMSI, IMEI }")
-
-    parser.add_argument("-f", "--framed-ip", dest="framed_ip",
-            action=AddressAction, help="framed ip")
-
-    parser.add_argument("-c", "--calling-id", dest="calling_id",
-            help="3GPP calling id")
-
-    parser.add_argument("-C", "--called-id", dest="called_id",
-            help="3GPP called id")
-
-    parser.add_argument("--delay", dest="delay", default="1",
-            help="""the delay between stopping and starting the session
-            during the restart mode (-R/--restart)""")
-
-    parser.add_argument("--clean", dest="cleancache", default=False,
-            action="store_true",
-            help="""clean the cached configuration""")
-
-    parser.add_argument("-v", "--verbose", dest="verbose",
-            action="store_true", default=False,
-            help="enable verbose output")
-
-    args = parser.parse_args()
-    return args.__dict__
+    return config
 
 
 def debug(message, force=False):
@@ -487,16 +510,16 @@ def debug(message, force=False):
 
 def main(config):
     # reading the event arguments
-    args = parse_args(config)
+    args = parse_args()
 
     # try loading the pickled configuration
-    if not args["cleancache"]:
+    if not "cleancache" in args:
         try:
             with open(PICKLED_FILE_NAME, "r") as f:
                 cache = pickle.load(f)
-            config.update(cache.__dict__)
-            if args["verbose"]:
+            if "verbose" in args:
                 debug("Cache found. Loading...", force=True)
+            config.update(cache.__dict__)
         except IOError:
             cache = None
 
@@ -513,6 +536,7 @@ def main(config):
     # pickling the current configuration for future reuse
     debug("Caching the current config for future use")
     with open(PICKLED_FILE_NAME, "w") as f:
+        config.verbose = False
         pickle.dump(config, f)
 
 
@@ -521,6 +545,9 @@ if __name__ == "__main__":
 
     try:
         main(config)        # main logic
+    except (KeyboardInterrupt):
+        print "Interrupted... Exiting"
+        sys.exit(1)
     except (ValueError, NotImplementedError, IOError) as e:
         print "ERROR: %s" % e.message
 
