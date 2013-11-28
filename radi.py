@@ -536,7 +536,9 @@ def main(config):
     # pickling the current configuration for future reuse
     debug("Caching the current config for future use")
     with open(PICKLED_FILE_NAME, "w") as f:
-        config.verbose = False
+        try:
+            delattr(config, "verbose")
+        except AttributeError: pass
         pickle.dump(config, f)
 
 
