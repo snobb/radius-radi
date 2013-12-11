@@ -67,6 +67,7 @@ AVP_TYPE = {
     "3GPP-User-Location-Info" : 22
 }
 
+__verbose__ = False     # enabling verbose logging
 
 # Constants
 FRAMED_PROTO_PPP = 1
@@ -94,7 +95,6 @@ class Config(object):
                 0xffff) # CI
         self.delay = 1
         self.action = START
-        self.verbose = False
 
 
     def update(self, config):
@@ -449,6 +449,7 @@ def usage():
 
 def parse_args():
     """parse CLI arguments"""
+    global __verbose__
     config = dict()
     config["name"] = sys.argv.pop(0)
     try:
@@ -497,14 +498,15 @@ def parse_args():
         elif opt in ("-L", "--clean"):
             config["cleancache"] = True
         elif opt in ("-v", "--verbose"):
-            config["verbose"] = True
+            __verbose__ = True
 
     return config
 
 
 def debug(message, force=False):
     """debug output - printed only if the verbose config option is set"""
-    if config.verbose or force:
+    global __verbose__
+    if __verbose__ or force:
         print message
 
 
@@ -536,9 +538,6 @@ def main(config):
     # pickling the current configuration for future reuse
     debug("Caching the current config for future use")
     with open(PICKLED_FILE_NAME, "w") as f:
-        try:
-            delattr(config, "verbose")
-        except AttributeError: pass
         pickle.dump(config, f)
 
 
