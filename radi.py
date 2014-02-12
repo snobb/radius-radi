@@ -8,7 +8,7 @@ import getopt, sys
 import struct, socket
 import pickle, hashlib
 
-__version__ = "0.02"
+__version__ = "0.03"
 
 # Radius-Request
 #    0                   1                   2                   3
@@ -150,7 +150,6 @@ class RadiusAcctRequest(object):
         self.code = 4
         self.pid = 0xf5
         self.length = 20    # length so far
-        self.auth = IntegerType(0, length=4)
         self.secret = secret
         self.avp_list = []
 
@@ -162,29 +161,35 @@ class RadiusAcctRequest(object):
             self.length += len(avp)
 
 
-    def compute_authenticator(self):
-        """compute authenticator of the radius request"""
-        self.auth = IntegerType(0, length=4)
-        avps = "".join([avp.dump() for avp in self.avp_list])
+    def get_all_avps_contents(self):
+        """return binary contents of all AVPs in the requests"""
+        return "".join([avp.dump() for avp in self.avp_list])
+
+
+    def compute_authenticator(self, avps):
+        """gets the avp binary contents as an argument and returns computed
+        authenticator of the radius request"""
+        if not avps:
+            raise ValueError("AVPs contents isn't defined")
         header = struct.pack(RADIUS_HDR_TMPL,
                 self.code,
                 self.pid,
                 len(self),
-                bytes(self.auth))
+                bytes(IntegerType(0, length=4)))
         packet = "".join([header, avps, self.secret])
-        self.auth = hashlib.md5(packet).digest()
+        return hashlib.md5(packet).digest()
 
 
     def dump(self):
         """dump binary version of the Radius Request packet payload
         including AVPs"""
-        self.compute_authenticator()
-        avps = "".join([avp.dump() for avp in self.avp_list])
+        avps = self.get_all_avps_contents()
+        auth = self.compute_authenticator(avps)
         header = struct.pack(RADIUS_HDR_TMPL,
                 self.code,
                 self.pid,
                 len(self),
-                self.auth)
+                auth)
         return "".join([header, avps])
 
 
@@ -193,9 +198,9 @@ class RadiusAcctRequest(object):
 
 
     def __str__(self):
-        self.compute_authenticator()
+        auth = self.compute_authenticator(self.get_all_avps_contents())
         header = "HEADER:  Code:{%d}  PID{%d}  Length:{%d}  Auth{%s}\n" % (
-                self.code, self.pid, len(self), self.auth.encode("hex"))
+                self.code, self.pid, len(self), auth.encode("hex"))
         avps = "".join([str(avp) for avp in self.avp_list])
         return "".join((header, avps))
 
