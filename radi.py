@@ -8,7 +8,7 @@ import getopt, sys
 import struct, socket
 import pickle, hashlib
 
-__version__ = "0.03"
+__version__ = "0.04"
 
 # Radius-Request
 #    0                   1                   2                   3
@@ -80,8 +80,8 @@ class Config(object):
         self.radius_port = 1813
         self.radius_secret = "secret"
         self.username = "johndoe"
-        self.subs_id = "12345678901234"
-        self.subs_type = "imsi"
+        self.imsi = "12345678901234"
+        self.imei = "3456789012345678901234567890"
         self.framed_ip ="10.0.0.1"
         self.framed_mask = 32
         self.calling_id = "00441234987654"
@@ -175,7 +175,7 @@ class RadiusAcctRequest(object):
                 self.code,
                 self.pid,
                 len(self),
-                bytes(IntegerType(0, length=4)))
+                bytes(chr(0x00) * 16))
         packet = "".join([header, avps, self.secret])
         return hashlib.md5(packet).digest()
 
@@ -363,12 +363,8 @@ def create_packet(config):
     rad.add_avp(RadiusAvp("3GPP-User-Location-Info",
         TextType(config.subs_loc_info)))
 
-    if config.subs_type == "imsi":
-        rad.add_avp(RadiusAvp("3GPP-IMSI", TextType(config.subs_id)))
-    elif config.subs_type == "imei":
-        rad.add_avp(RadiusAvp("3GPP-IMEISV", TextType(config.subs_id)))
-    else:
-        raise ValueError("Unknown type of subscriber identifier")
+    rad.add_avp(RadiusAvp("3GPP-IMSI", TextType(config.imsi)))
+    rad.add_avp(RadiusAvp("3GPP-IMEISV", TextType(config.imei)))
 
     debug(str(rad))
 
@@ -433,10 +429,10 @@ def usage():
         "  -S, --start           start session\n"
         "  -T, --stop            stop session\n"
         "  -R, --restart         restart session\n"
-        "  -i SUBS_ID, --id SUBS_ID\n"
-        "                        subscriber id { default imsi }\n"
-        "  -t {imsi,imei}, --id-type {imsi,imei}\n"
-        "                        subscriber id type { IMSI, IMEI }\n"
+        "  -i IMSI, --imsi IMSIzn"
+        "                        subscriber imsi\n"
+        "  -t IMEI, --imei IMEI\n"
+        "                        subscriber imei\n"
         "  -f FRAMED_IP, --framed-ip FRAMED_IP\n"
         "                        framed ip\n"
         "  -c CALLING_ID, --calling-id CALLING_ID\n"
@@ -481,13 +477,10 @@ def parse_args():
             config["action"] = STOP
         elif opt in ("-R", "--restart"):
             config["action"] = RESTART
-        elif opt in ("-i", "--id"):
-            config["subs_id"] = value
-        elif opt in ("-t", "--id-type"):
-            if value.lower() in ("imsi", "imei"):
-                config["subs_type"] = value.lower()
-            else:
-                raise ValueError("invalid id-type value")
+        elif opt in ("-i", "--imsi"):
+            config["imsi"] = value
+        elif opt in ("-t", "--imei"):
+            config["imei"] = value
         elif opt in ("-f", "--framed-ip"):
             if "/" in value:
                 value, mask = value.split("/")
