@@ -25,13 +25,13 @@ class AttributeDef(object):
         self.attr_defined_values = []
 
     def __str__(self):
-        content = [("ATTRIBUTE: id: {}, name: {}, type: {}"
+        content = [("ATTRIBUTE:\tid: {}, name: {}, type: {}"
                         .format(self.attr_id, self.attr_name, self.attr_type))]
         if self.attr_vendor:
             content.append("\t{}".format(self.attr_vendor))
 
         for name, value in iter(self.attr_defined_values):
-            content.append("\tVALUE: name {}, value: {}".format(
+            content.append("\tVALUE:\tname {}, value: {}".format(
                 name, value))
         return "\n".join(content)
 
@@ -43,7 +43,7 @@ class VendorDef(object):
         self.vendor_id = vendor_id
 
     def __str__(self):
-        return ("VENDOR: name: {}, id: {}"
+        return ("VENDOR:\tname: {}, id: {}"
                     .format(self.vendor_name, self.vendor_id))
 
 
@@ -89,7 +89,7 @@ class Dictionary(object):
                 elif record_type == "END-VENDOR":
                     vendor = None
                 else:
-                    pass
+                    pass # ignoring everything we don't know
 
         return includes
 
@@ -98,7 +98,10 @@ class Dictionary(object):
         """read values from dictionary files"""
         full_name = os.path.join(path, filename)
         for fname in self.read_one_file(full_name):
-            self.read_dictionaries(fname, path)
+            try:
+                self.read_dictionaries(fname, path)
+            except IOError:
+                print "ERROR: cannot find a file"
 
 
     def read_dictionary(self, filename, path):
@@ -112,6 +115,13 @@ class Dictionary(object):
                     attribute.attr_defined_values.append((name, value))
 
         self.values = None
+
+
+    def get_attribute(self, name):
+        try:
+            return self.attributes[name.lower()]
+        except KeyError:
+            raise ValueError("ERROR: attribute not found")
 
 
     def __str__(self):

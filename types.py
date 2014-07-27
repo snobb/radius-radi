@@ -8,33 +8,20 @@ import struct
 import socket
 
 
-class TypeFactory(object):
-    """Type factory"""
-    def __init__(self):
-        self.types = {
-                "string"    : TextType,
-                "ipaddr"    : AddressType,
-                "octets"    : TextType,
-                "date"      : None,
-                "integer"   : IntegerType,
-                "ipv6addr"  : AddressType,
-                "byte"      : ByteType,
-                }
-
-
-    def get_type_obj(self, type_name):
-        """Get a type object by name"""
-        if type_name in self.types:
-            return self.types[type_name]
-        return None
-
-
-    def get_type_instance(self, type_name, *args, *kwargs):
-        """Get a type object instance by name"""
-        obj = self.get_type_obj(type_name)
-        if not obj:
-            raise ValueError("The type is not defined")
-        return obj(*args, *kwargs)
+types = {
+    "string"    : TextType,
+    "octets"    : TextType,
+    "ipaddr"    : AddressType,
+    "ipv6addr"  : AddressType,
+    "ipv6prefix": AddressType,
+    "ether"     : None
+    "date"      : None,
+    "integer"   : IntegerType,
+    "signed"    : IntegerType,
+    "short"     : None,
+    "byte"      : ByteType,
+    "tlv"       : None,
+    }
 
 
 
@@ -203,6 +190,24 @@ class ContainerType(object):
         """dump binary representation of the contained values"""
         values_binary = "".join([value.dump() for value in self.values])
         return bytes(values_binary)
+
+
+
+def get_type_obj(type_name):
+    """Get a type object by name"""
+    global types
+    if type_name in types:
+        return types[type_name]
+    raise NotImplementedError("ERROR: the type is not implemented")
+
+
+def get_type_instance(self, type_name, *args, *kwargs):
+    """Get a type object instance by name"""
+    obj = get_type_obj(type_name)
+    if not obj:
+        raise ValueError("The type is not defined")
+    return obj(*args, *kwargs)
+
 
 
 
