@@ -5,7 +5,11 @@
 #
 
 import os.path
-import struct
+
+__dictionary = None
+__dict_path = "dict"
+__dict_file = "dictionary"
+
 
 class AttributeDef(object):
     def __init__(self, attr_name, attr_id, attr_type,
@@ -24,6 +28,7 @@ class AttributeDef(object):
         # dictionary of values defined in the dictionary
         self.attr_defined_values = []
 
+
     def __str__(self):
         content = [("ATTRIBUTE:\tid: {}, name: {}, type: {}"
                         .format(self.attr_id, self.attr_name, self.attr_type))]
@@ -36,26 +41,36 @@ class AttributeDef(object):
         return "\n".join(content)
 
 
+
 class VendorDef(object):
     def __init__(self, vendor_name, vendor_id):
         """Vendor storage object"""
         self.vendor_name = vendor_name
         self.vendor_id = vendor_id
 
+
     def __str__(self):
         return ("VENDOR:\tname: {}, id: {}"
                     .format(self.vendor_name, self.vendor_id))
+
 
 
 class Dictionary(object):
     """data structure is as follows:
         attributes = { name : Attribute object instance }
     Attribute should now the value id can have and its vendor.
+    NOTE: the values are stored as string regardless of type.
+          Eg. integer 100 will still be stored as "100" hence
+          casting IS REQUIRED upon using the values.
+          This feature is subject to change in future.
     """
-    def __init__(self):
+    def __init__(self, dict_path="dict", dict_file="dictionary"):
+        self.dict_path = dict_path
+        self.dict_file = dict_file
         self.attributes = {}
         self.vendors = {}
         self.values = {}
+        self.read_dictionary(self.dict_file, self.dict_path)
 
 
     def read_one_file(self, filename):
@@ -73,7 +88,7 @@ class Dictionary(object):
                     includes.append(record_name)
                 elif record_type == "ATTRIBUTE":
                     attr_id, attr_type = field[2:4]
-                    attribute = AttributeDef(record_name, attr_id,
+                    attribute = AttributeDef(record_name, int(attr_id),
                             attr_type, vendor)
                     self.attributes[record_name.lower()] = attribute
                 elif record_type == "VALUE":
@@ -83,7 +98,7 @@ class Dictionary(object):
                 elif record_type == "VENDOR":
                     vendor_id = field[2]
                     self.vendors[record_name.lower()] = VendorDef(record_name,
-                            vendor_id)
+                            int(vendor_id))
                 elif record_type == "BEGIN-VENDOR":
                     vendor = self.vendors[record_name.lower()]
                 elif record_type == "END-VENDOR":
@@ -101,7 +116,7 @@ class Dictionary(object):
             try:
                 self.read_dictionaries(fname, path)
             except IOError:
-                print "ERROR: cannot find a file"
+                print "Error: cannot find a file"
 
 
     def read_dictionary(self, filename, path):
@@ -121,7 +136,7 @@ class Dictionary(object):
         try:
             return self.attributes[name.lower()]
         except KeyError:
-            raise ValueError("ERROR: attribute not found")
+            raise ValueError("attribute not found")
 
 
     def __str__(self):
@@ -131,11 +146,22 @@ class Dictionary(object):
         return "\n".join(contents)
 
 
-if __name__ == "__main__":
-    dict_path = "dict"
-    rad_dict = Dictionary()
-    rad_dict.read_dictionary("dictionary", dict_path)
+def get_dictionary():
+    return __dictionary
 
-    print rad_dict
+def get_attribute(*args, **kwargs):
+    global __dictionary, __dict_path, __dict_file
+    if not __dictionary:
+        __dictionary = Dictionary(__dict_path, __dict_file)
+    return __dictionary.get_attribute(*args, **kwargs)
+
+
+if __name__ == "__main__":
+    try:
+        get_attribute("test")
+    except ValueError:
+        pass
+
+    print __dictionary
 
 # vim: ts=3 sts=4 sw=4 tw=80 ai smarttab et fo=rtcq list

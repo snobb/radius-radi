@@ -10,27 +10,54 @@ import unittest
 
 class AVPTest(unittest.TestCase):
     def setUp(self):
-        self.rad_dict = dictionary.Dictionary()
-        self.rad_dict.read_dictionary("dictionary", "tests/dict")
+        pass
 
 
     def tearDown(self):
-        del(self.rad_dict)
+        pass
 
 
     def test_attributes(self):
-        self.assertEquals(454, len(self.rad_dict.attributes))
+        self.assertEquals(454, len(dictionary.get_dictionary().attributes))
 
 
     def test_values(self):
         """NAS-Port-Type values are defined in several files.
         checking if its all in tact in the end"""
-        attr = self.rad_dict.get_attribute("nas-port-type")
+        attr = dictionary.get_attribute("nas-port-type")
+        self.assertIsNotNone(attr)
         self.assertEquals(37, len(attr.attr_defined_values))
-        attr = self.rad_dict.get_attribute("DHCP-Parameter-Request-List")
+        attr = dictionary.get_attribute("DHCP-Parameter-Request-List")
+        self.assertIsNotNone(attr)
         self.assertEquals(117, len(attr.attr_defined_values))
 
+
     def test_vendors(self):
-        self.assertEquals(6, len(self.rad_dict.vendors))
+        self.assertEquals(6, len(dictionary.get_dictionary().vendors))
+
+
+    def test_attribute(self):
+        attr = dictionary.get_attribute("f5-ltm-user-role")
+        self.assertIsNotNone(attr)
+        self.assertEquals(1, attr.attr_id)
+        self.assertEquals("integer", attr.attr_type)
+        self.assertIsNotNone(attr.attr_vendor)
+        vendor = attr.attr_vendor
+        self.assertEquals("F5", vendor.vendor_name)
+        self.assertEquals(3375, vendor.vendor_id)
+
+        values = attr.attr_defined_values
+        self.assertTrue(len(values))
+        # values are all strings and that is by design.
+        # the convertion is to be done by the Type objects
+        exp_values = set([
+                ("Administrator", "0"), ("Resource-Admin", "20"),
+                ("User-Manager", "40"), ("Manager", "100"),
+                ("App-Editor", "300"), ("Operator", "400"),
+                ("Guest", "700"), ("Policy-Editor", "800"),
+                ("No-Access", "900")
+                ])
+        self.assertEquals(exp_values, set(values))
+
 
 # vim: ts=4 sts=4 sw=4 tw=80 ai smarttab et fo=rtcq list

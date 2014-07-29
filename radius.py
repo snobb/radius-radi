@@ -4,10 +4,8 @@
 # Author: Alex Kozadaev (2014)
 #
 
-import types
-from dictionary import Dictionary
-
-dictionary = Dictionary()
+import radtypes
+import dictionary
 
 class RadiusAvp(object):
     """Radius avp implementations"""
@@ -15,17 +13,19 @@ class RadiusAvp(object):
         self.children = []
         self.avp_def = dictionary.get_attribute(avp_name.lower())
 
-        if (allow_child and self.avp_def.attr_vendor):
+        vendor = self.avp_def.attr_vendor
+        if (allow_child and vendor):
             self.avp_def = dictionary.get_attribute("vendor-specific")
-            children.append(RadiusAvp(avp_name, avp_value, False))
-
-        self.avp_code = types.get_type_instance(
-                "integer",
-                self.avp_def.attr_id)
-
-        self.avp_value = types.get_type_instance(
-                self.avp_def.attr_type,
-                avp_value)
+            self.avp_code = radtypes.get_type_instance("integer",
+                    self.avp_def.attr_id)
+            self.avp_value = radtypes.get_type_instance("integer",
+                    vendor.vendor_id)
+            self.children.append(RadiusAvp(avp_name, avp_value, False))
+        else:
+            self.avp_code = radtypes.get_type_instance("integer",
+                    self.avp_def.attr_id)
+            self.avp_value = radtypes.get_type_instance(self.avp_def.attr_type,
+                    avp_value)
 
 
     def dump(self):

@@ -1,27 +1,11 @@
 #!/usr/bin/env python
 #
-# types.py
+# radtypes.py
 # Author: Alex Kozadaev (2014)
 #
 
 import struct
 import socket
-
-
-types = {
-    "string"    : TextType,
-    "octets"    : TextType,
-    "ipaddr"    : AddressType,
-    "ipv6addr"  : AddressType,
-    "ipv6prefix": AddressType,
-    "ether"     : None
-    "date"      : None,
-    "integer"   : IntegerType,
-    "signed"    : IntegerType,
-    "short"     : None,
-    "byte"      : ByteType,
-    "tlv"       : None,
-    }
 
 
 
@@ -34,33 +18,33 @@ class AbstractType(object):
     def __len__(self):
         return length if length else len(value)
 
-    def self.__lt__(self, other):
+    def __lt__(self, other):
         if type(self) != type(other):
             raise AttributeError("Incomparable types")
         return self.value < other.value
 
-    def self.__le__(self, other)
+    def __le__(self, other):
         if type(self) != type(other):
             raise AttributeError("Incomparable types")
-         return self.value <= other.value
+        return self.value <= other.value
 
-    def self.__eq__(self, other)
+    def __eq__(self, other):
         if type(self) != type(other):
             raise AttributeError("Incomparable types")
-         return self.value == other.value
+        return self.value == other.value
 
-    def self.__ne__(self, other)
-         return not self == other
+    def __ne__(self, other):
+        return not self == other
 
-    def self.__gt__(self, other)
+    def __gt__(self, other):
         if type(self) != type(other):
             raise AttributeError("Incomparable types")
-         return self.value > other.value
+        return self.value > other.value
 
-    def self.__ge__(self, other)
+    def __ge__(self, other):
         if type(self) != type(other):
             raise AttributeError("Incomparable types")
-         return self.value >= other.value
+        return self.value >= other.value
 
     def __str__(self):
         return str(self.value)
@@ -73,9 +57,7 @@ class AbstractType(object):
 class AddressType(AbstractType):
     """IP ip_string data type"""
     def __init__(self, value):
-        super(TextType, self).__init__(self.value)
-        if type(value) != str:
-            raise ValueError("String expected")
+        super(TextType, self).__init__(str(value))
 
         self.family = socket.AF_INET6 if self.is_ipv6() else socket.AF_INET
 
@@ -103,11 +85,9 @@ class AddressType(AbstractType):
 class TextType(AbstractType):
     """Text data type"""
     def __init__(self, value):
-        super(TextType, self).__init__(self.value)
+        super(TextType, self).__init__(str(value))
         if not value:
             raise ValueError("Empty strings are not allowed (rfc2866)")
-        if type(value) != str:
-            raise ValueError("String expected")
 
 
     def __len__(self):
@@ -127,9 +107,7 @@ class IntegerType(AbstractType):
     """Integer data type"""
     def __init__(self, value, length=1):
         """length is set in 4byte chunks. eg. length = 4 == 16bytes"""
-        super(IntegerType, self).__init__(self.value)
-        if type(value) != int:
-            raise ValueError("Integer expected")
+        super(IntegerType, self).__init__(int(value))
         self.length = length
 
 
@@ -151,9 +129,7 @@ class IntegerType(AbstractType):
 class ByteType(AbstractType):
     """Byte data type"""
     def __init__(self, value):
-        super(ByteType, self).__init__(self.value)
-        if type(value) != int:
-            raise ValueError("Integer expected")
+        super(ByteType, self).__init__(int(value))
         if value < 0 or value > 0xff:
             raise ValueError("byte - type overflow")
 
@@ -192,21 +168,37 @@ class ContainerType(object):
         return bytes(values_binary)
 
 
+_types = {
+    "string"    : TextType,
+    "octets"    : TextType,
+    "ipaddr"    : AddressType,
+    "ipv6addr"  : AddressType,
+    "ipv6prefix": AddressType,
+    "ether"     : None,
+    "date"      : None,
+    "integer"   : IntegerType,
+    "signed"    : IntegerType,
+    "short"     : None,
+    "byte"      : ByteType,
+    "tlv"       : None,
+    }
+
+
 
 def get_type_obj(type_name):
     """Get a type object by name"""
-    global types
-    if type_name in types:
-        return types[type_name]
+    global _types
+    if type_name in _types:
+        return _types[type_name]
     raise NotImplementedError("ERROR: the type is not implemented")
 
 
-def get_type_instance(self, type_name, *args, *kwargs):
+def get_type_instance(type_name, *args, **kwargs):
     """Get a type object instance by name"""
     obj = get_type_obj(type_name)
     if not obj:
         raise ValueError("The type is not defined")
-    return obj(*args, *kwargs)
+    return obj(*args, **kwargs)
 
 
 
