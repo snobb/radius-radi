@@ -10,7 +10,7 @@ import dictionary
 class RadiusAvp(object):
     """Radius avp implementations"""
     def __init__(self, avp_name, avp_value, allow_child=True):
-        self.children = []
+        self.avp_subavp = []
         self.avp_def = dictionary.get_attribute(avp_name.lower())
 
         vendor = self.avp_def.attr_vendor
@@ -20,7 +20,7 @@ class RadiusAvp(object):
                     self.avp_def.attr_id)
             self.avp_value = radtypes.get_type_instance("integer",
                     vendor.vendor_id)
-            self.children.append(RadiusAvp(avp_name, avp_value, False))
+            self.avp_subavp.append(RadiusAvp(avp_name, avp_value, False))
         else:
             self.avp_code = radtypes.get_type_instance("integer",
                     self.avp_def.attr_id)
@@ -40,8 +40,8 @@ class RadiusAvp(object):
 
 
     def __len__(self):
-        children_len = sum(map(lambda child: len(child), self.children))
-        return 2 + len(self.avp_value) + children_len
+        avp_subavp_len = sum(map(lambda child: len(child), self.avp_subavp))
+        return 2 + len(self.avp_value) + avp_subavp_len
 
 
     def __str__(self):
@@ -49,8 +49,8 @@ class RadiusAvp(object):
                 self.avp_def.attr_name, self.avp_type,
                 len(self),
                 str(self.avp_value))]
-        if len(self.children) > 0:
-            for child in self.children():
+        if len(self.avp_subavp) > 0:
+            for child in self.avp_subavp():
                 contents.append("\n{}".format(str(child)))
         return "\n".join((avp, "`- %s" % str(self.vsa_child)))
 

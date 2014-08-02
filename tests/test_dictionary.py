@@ -51,12 +51,13 @@ class AVPTest(unittest.TestCase):
         # values are all strings and that is by design.
         # the convertion is to be done by the Type objects
         exp_values = set([
-                ("Administrator", "0"), ("Resource-Admin", "20"),
-                ("User-Manager", "40"), ("Manager", "100"),
-                ("App-Editor", "300"), ("Operator", "400"),
-                ("Guest", "700"), ("Policy-Editor", "800"),
-                ("No-Access", "900")
+                ("Administrator", 0), ("Resource-Admin", 20),
+                ("User-Manager", 40), ("Manager", 100),
+                ("App-Editor", 300), ("Operator", 400),
+                ("Guest", 700), ("Policy-Editor", 800),
+                ("No-Access", 900)
                 ])
+        values = [(name, val.value) for name, val in iter(values)]
         self.assertEquals(exp_values, set(values))
 
 

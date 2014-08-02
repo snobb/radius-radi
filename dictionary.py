@@ -5,6 +5,7 @@
 #
 
 import os.path
+import radtypes
 
 __dictionary = None
 __dict_path = "dict"
@@ -25,7 +26,7 @@ class AttributeDef(object):
         self.attr_id = attr_id # attribute code
         self.attr_type = attr_type
         self.attr_vendor = attr_vendor
-        # dictionary of values defined in the dictionary
+        # list of values defined in the dictionary
         self.attr_defined_values = []
 
 
@@ -127,7 +128,10 @@ class Dictionary(object):
             attribute = self.attributes[attr_name]
             if attribute:
                 for name, value in values:
-                    attribute.attr_defined_values.append((name, value))
+                    value_obj = radtypes.get_type_instance(
+                            attribute.attr_type, value)
+                    attribute.attr_defined_values.append(
+                            (name, value_obj))
 
         self.values = None
 
