@@ -58,6 +58,12 @@ class AVPTest(unittest.TestCase):
     def test_integer_value_avp(self):
         with self.assertRaises(ValueError):
             avp = radius.RadiusAvp("F5-LTM-User-Console", 5)
+
+        try:
+            avp = radius.RadiusAvp("F5-LTM-User-Console", 1)
+        except ValueError as e:
+            self.fail("raised {}: {}".format(type(e), e.message))
+
         self.assertIsNotNone(avp)
         self.assertEquals(1, len(avp.avp_subavp))
         self.assertEquals(26, avp.avp_code.value)       # vendor-specific

@@ -26,6 +26,19 @@ class RadiusAvp(object):
                     self.avp_def.attr_id)
             self.avp_value = radtypes.get_type_instance(self.avp_def.attr_type,
                     avp_value)
+        self.validate_values()
+
+
+    def validate_values(self):
+        """check if the values are in the allowed range in case the AVP has
+        a list of defined values"""
+        if self.avp_def.has_defined_values():
+            defined_values = dict(self.avp_def.attr_defined_values)
+            if self.avp_value not in defined_values.values():
+                raise ValueError("value {} is not allowed".format(
+                    self.avp_value, type(self.avp_value)))
+
+        return True
 
 
     def dump(self):

@@ -30,6 +30,11 @@ class AttributeDef(object):
         self.attr_defined_values = []
 
 
+    def has_defined_values(self):
+        """returns true if the attribute has a list of defined values"""
+        return len(self.attr_defined_values) > 0
+
+
     def __str__(self):
         content = [("ATTRIBUTE:\tid: {}, name: {}, type: {}"
                         .format(self.attr_id, self.attr_name, self.attr_type))]
