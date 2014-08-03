@@ -9,6 +9,7 @@ DESIGN PROBLEMS TO SOLVE:
 
 - the value storage currently is a list of tuples. [ (name, value), (name1, value1) ].
     - Given the size of the list isn't big, the linear search may be acceptable here. Should I consider changing it to dictionary?
+    (Currently converting to dict every time we need to check)
 
 
 DESIGN OF THE DICTIONARY STRUCTURE:

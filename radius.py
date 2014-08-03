@@ -4,8 +4,39 @@
 # Author: Alex Kozadaev (2014)
 #
 
+import struct
 import radtypes
 import dictionary
+
+# Radius-Request
+#    0                   1                   2                   3
+#    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+#   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#   |     Code      |  Identifier   |            Length             |
+#   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#   |                                                               |
+#   |                     Request Authenticator                     |
+#   |                                                               |
+#   |                                                               |
+#   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#   |  Attributes ...
+#   +-+-+-+-+-+-+-+-+-+-+-+-+-
+
+# Regular AVP
+#    0                   1                   2                   3
+#    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+#   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#   |     Type      |    Length     |             Value
+#   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#              Value (cont)         |
+#   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+# String VSA (normally encapsulated in a AVP)
+#    0                   1                   2
+#    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3
+#   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#   |     Type      |    Length     |  String ...
+#   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
 class RadiusAvp(object):
     """Radius avp implementations"""
@@ -16,13 +47,13 @@ class RadiusAvp(object):
         vendor = self.avp_def.attr_vendor
         if (allow_child and vendor):
             self.avp_def = dictionary.get_attribute("vendor-specific")
-            self.avp_code = radtypes.get_type_instance("integer",
+            self.avp_code = radtypes.get_type_instance("byte",
                     self.avp_def.attr_id)
             self.avp_value = radtypes.get_type_instance("integer",
                     vendor.vendor_id)
             self.avp_subavp.append(RadiusAvp(avp_name, avp_value, False))
         else:
-            self.avp_code = radtypes.get_type_instance("integer",
+            self.avp_code = radtypes.get_type_instance("byte",
                     self.avp_def.attr_id)
             self.avp_value = radtypes.get_type_instance(self.avp_def.attr_type,
                     avp_value)
@@ -41,15 +72,22 @@ class RadiusAvp(object):
         return True
 
 
+    def has_sub_avps(self):
+        return len(self.avp_subavp) > 0
+
+
     def dump(self):
         """dump the binary representation of the AVP"""
-        value = struct.pack(RADIUS_AVP_TMPL % len(self.avp_value),
-                self.avp_type,
-                len(self),
-                self.avp_value.dump())
-        if self.vsa_child:
-            return "".join((value, self.vsa_child.dump()))
-        return value
+        value = [
+                self.avp_code.dump(),
+                radtypes.get_type_instance("byte", len(self)).dump(),
+                self.avp_value.dump()
+                ]
+
+        if self.has_sub_avps():
+            subavps = [subavp.dump() for subavp in self.avp_subavp]
+            return "".join(value + subavps)
+        return "".join(value)
 
 
     def __len__(self):
@@ -59,17 +97,20 @@ class RadiusAvp(object):
 
     def __str__(self):
         contents = ["AVP: Type:{}({})  Length:{}  Value:{}\n".format(
-                self.avp_def.attr_name, self.avp_type,
+                self.avp_def.attr_name, self.avp_def.avp_type,
                 len(self),
                 str(self.avp_value))]
         if len(self.avp_subavp) > 0:
-            for child in self.avp_subavp():
-                contents.append("\n{}".format(str(child)))
-        return "\n".join((avp, "`- %s" % str(self.vsa_child)))
-
+            for subavp in self.avp_subavp():
+                contents.append("\n`- {}".format(str(subavp)))
+        return "\n".join(contents)
 
 
 class RadiusAcctRequest(object):
+    # Radius accounting header templates
+    RADIUS_HDR_TMPL="!BBH16s"
+
+
     """Radius accounting request object"""
     def __init__(self, secret):
         self.code = 4
@@ -96,11 +137,11 @@ class RadiusAcctRequest(object):
         authenticator of the radius request"""
         if not avps:
             raise ValueError("AVPs contents isn't defined")
-        header = struct.pack(RADIUS_HDR_TMPL,
+        header = struct.pack(RadiusAcctRequest.RADIUS_HDR_TMPL,
                 self.code,
                 self.pid,
                 len(self),
-                bytes(IntegerType(0, length=4)))
+                bytes(chr(0x00) * 16))
         packet = "".join([header, avps, self.secret])
         return hashlib.md5(packet).digest()
 
@@ -128,7 +169,6 @@ class RadiusAcctRequest(object):
                 self.code, self.pid, len(self), auth.encode("hex"))
         avps = "".join([str(avp) for avp in self.avp_list])
         return "".join((header, avps))
-
 
 
 

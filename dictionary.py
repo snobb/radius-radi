@@ -148,6 +148,10 @@ class Dictionary(object):
             raise ValueError("attribute not found")
 
 
+    def __iter__(self):
+        return iter(self.attributes)
+
+
     def __str__(self):
         contents = []
         for attr in self.attributes.itervalues():
@@ -155,14 +159,17 @@ class Dictionary(object):
         return "\n".join(contents)
 
 
-def get_dictionary():
-    return __dictionary
-
-def get_attribute(*args, **kwargs):
-    global __dictionary, __dict_path, __dict_file
+def get_dictionary(dict_path="dict", dict_file="dictionary"):
+    global __dict_file, __dict_path, __dictionary
+    __dict_path = dict_path
+    __dict_file = dict_file
     if not __dictionary:
         __dictionary = Dictionary(__dict_path, __dict_file)
-    return __dictionary.get_attribute(*args, **kwargs)
+    return __dictionary
+
+
+def get_attribute(*args, **kwargs):
+    return get_dictionary().get_attribute(*args, **kwargs)
 
 
 if __name__ == "__main__":

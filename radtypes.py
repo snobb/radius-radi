@@ -55,7 +55,7 @@ class AbstractType(object):
 class AddressType(AbstractType):
     """IP ip_string data type"""
     def __init__(self, value):
-        super(TextType, self).__init__(str(value))
+        super(AddressType, self).__init__(str(value))
 
         self.family = socket.AF_INET6 if self.is_ipv6() else socket.AF_INET
 
@@ -64,8 +64,22 @@ class AddressType(AbstractType):
         except socket.error:
             raise ValueError("Invalid IP ip_string")
 
+
+    def bits_to_ip4mask(self, num_bits):
+        """convert integer number of bits in ipv4 netmask to string
+        representation of the mask. Eg. '255.255.255.0'"""
+        if 0 <= num_bits <= 32:
+            bits = 0xffffffff ^ ((1 << (32 - num_bits)) - 1)
+            ip4_bytes = [str((bits >> 8*n) & 0xff) for n in range(3, -1, -1)]
+            return ".".join(ip4_bytes)
+        else:
+            raise ValueError("invalid IPv4 mask specified")
+
+
+
     def is_ipv6(self):
         return (":" in self.value)
+
 
     def __str__(self):
         return self.value
@@ -128,14 +142,14 @@ class NumericBaseType(AbstractType):
 
     def dump(self):
         values = get_numeric_array(self.value, self.length, self.byte_length)
-        return struct.pack("!{}{}".format(len(values), *values))
+        return struct.pack("!{}{}".format(len(values),self.pattern), *values)
 
 
 class IntegerType(NumericBaseType):
     """Integer data type"""
     def __init__(self, value, length=1):
         """length is set in 4byte chunks. eg. length = 4 == 16bytes"""
-        super(IntegerType, self).__init__(value)
+        super(IntegerType, self).__init__(value, length)
         self.byte_length = 4
         self.pattern = "L"
 
@@ -143,7 +157,7 @@ class IntegerType(NumericBaseType):
 class ShortType(NumericBaseType):
     def __init__(self, value, length=1):
         """length is set in 2byte chunks. eg. length = 4 == 8bytes"""
-        super(ShortType, self).__init__(value)
+        super(ShortType, self).__init__(value, length)
         self.byte_length = 2
         self.pattern = "h"
 
@@ -151,7 +165,7 @@ class ShortType(NumericBaseType):
 class ByteType(NumericBaseType):
     def __init__(self, value, length=1):
         """length is set in 1byte chunks. eg. length = 4 == 4bytes"""
-        super(ByteType, self).__init__(value)
+        super(ByteType, self).__init__(value, length)
         self.byte_length = 1
         self.pattern = "B"
 
