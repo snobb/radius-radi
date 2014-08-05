@@ -75,7 +75,6 @@ class Config(object):
         self.delay = 1
         self.action = START
 
-
     def update(self, config):
         """merge the current object with 'config' dictionary"""
         self.__dict__.update(config)
@@ -120,7 +119,6 @@ def create_packet(config):
 
     return bytes(rad.dump())
 
-
 def send_packet(destTuple, packet):
     """send the packet to the network"""
     if is_ipv6(destTuple[0]):
@@ -132,11 +130,9 @@ def send_packet(destTuple, packet):
     sock.sendto(packet, destTuple)
     sock.close()
 
-
 def start_stop_session(config):
     """send start/stop session based on action in the config"""
     send_packet((config.radius_dest, config.radius_port), create_packet(config))
-
 
 def restart_session(config):
     """restart session
@@ -150,7 +146,6 @@ def restart_session(config):
     time.sleep(float(config.delay))
     config.action = START
     start_stop_session(config)
-
 
 def usage():
     print("Radius accounting session management tool\n\n"
@@ -185,7 +180,6 @@ def usage():
         "PLEASE NOTE: If action is specified multiple times, the last one\n"
         "             will be used. Eg. -S -R -T will run the session\n"
         "             stop (-T/--stop).\n")
-
 
 def parse_args():
     """parse CLI arguments"""
@@ -239,13 +233,11 @@ def parse_args():
 
     return config
 
-
 def debug(message, force=False):
     """debug output - printed only if the verbose config option is set"""
     global __verbose__
     if __verbose__ or force:
         print message
-
 
 def main(config):
     # reading the event arguments
@@ -276,7 +268,6 @@ def main(config):
     debug("Caching the current config for future use")
     with open(PICKLED_FILE_NAME, "w") as f:
         pickle.dump(config, f)
-
 
 if __name__ == "__main__":
     config = Config()

@@ -70,3 +70,11 @@ class RadiusAvp {
 
 DESIGN OF RADTYPES OBJECT:
 
+
+DESIGN OF LIBRADI LIBRARY:
+    libradi.radtypes.*      # type objects for storing values as per
+                            # dictionary attribute type
+
+    libradi.dictionary.*    # functions related to dictionary
+
+    libradi.*               # radius related objects/functions

@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 #
-# test_dictionary.py
+# test_libradi.py
 # Author: Alex Kozadaev (2014)
 #
 
-import dictionary
+import libradi
 import unittest
 
 
@@ -12,32 +12,27 @@ class AVPTest(unittest.TestCase):
     def setUp(self):
         pass
 
-
     def tearDown(self):
         pass
 
-
     def test_attributes(self):
-        self.assertEquals(454, len(dictionary.get_dictionary().attributes))
-
+        self.assertEquals(454, len(libradi.dictionary.get_dictionary().attributes))
 
     def test_values(self):
         """NAS-Port-Type values are defined in several files.
         checking if its all in tact in the end"""
-        attr = dictionary.get_attribute("nas-port-type")
+        attr = libradi.dictionary.get_attribute("nas-port-type")
         self.assertIsNotNone(attr)
         self.assertEquals(37, len(attr.attr_defined_values))
-        attr = dictionary.get_attribute("DHCP-Parameter-Request-List")
+        attr = libradi.dictionary.get_attribute("DHCP-Parameter-Request-List")
         self.assertIsNotNone(attr)
         self.assertEquals(117, len(attr.attr_defined_values))
 
-
     def test_vendors(self):
-        self.assertEquals(6, len(dictionary.get_dictionary().vendors))
-
+        self.assertEquals(6, len(libradi.dictionary.get_dictionary().vendors))
 
     def test_attribute(self):
-        attr = dictionary.get_attribute("f5-ltm-user-role")
+        attr = libradi.dictionary.get_attribute("f5-ltm-user-role")
         self.assertIsNotNone(attr)
         self.assertEquals(1, attr.attr_id)
         self.assertEquals("integer", attr.attr_type)
@@ -46,8 +41,8 @@ class AVPTest(unittest.TestCase):
         self.assertEquals("F5", vendor.vendor_name)
         self.assertEquals(3375, vendor.vendor_id)
 
+        self.assertTrue(attr.has_defined_values())
         values = attr.attr_defined_values
-        self.assertTrue(len(values))
         # values are all strings and that is by design.
         # the convertion is to be done by the Type objects
         exp_values = set([
@@ -59,6 +54,5 @@ class AVPTest(unittest.TestCase):
                 ])
         values = [(name, val.value) for name, val in iter(values)]
         self.assertEquals(exp_values, set(values))
-
 
 # vim: ts=4 sts=4 sw=4 tw=80 ai smarttab et fo=rtcq list

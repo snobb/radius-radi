@@ -29,11 +29,9 @@ class AttributeDef(object):
         # list of values defined in the dictionary
         self.attr_defined_values = []
 
-
     def has_defined_values(self):
         """returns true if the attribute has a list of defined values"""
         return len(self.attr_defined_values) > 0
-
 
     def __str__(self):
         content = [("ATTRIBUTE:\tid: {}, name: {}, type: {}"
@@ -47,28 +45,22 @@ class AttributeDef(object):
         return "\n".join(content)
 
 
-
 class VendorDef(object):
     def __init__(self, vendor_name, vendor_id):
         """Vendor storage object"""
         self.vendor_name = vendor_name
         self.vendor_id = vendor_id
 
-
     def __str__(self):
         return ("VENDOR:\tname: {}, id: {}"
                     .format(self.vendor_name, self.vendor_id))
 
 
-
 class Dictionary(object):
     """data structure is as follows:
         attributes = { name : Attribute object instance }
-    Attribute should now the value id can have and its vendor.
-    NOTE: the values are stored as string regardless of type.
-          Eg. integer 100 will still be stored as "100" hence
-          casting IS REQUIRED upon using the values.
-          This feature is subject to change in future.
+        Attribute should know the value id can have and its vendor.
+        NOTE: the values are stored as corresponding radtypes values
     """
     def __init__(self, dict_path="dict", dict_file="dictionary"):
         self.dict_path = dict_path
@@ -77,7 +69,6 @@ class Dictionary(object):
         self.vendors = {}
         self.values = {}
         self.read_dictionary(self.dict_file, self.dict_path)
-
 
     def read_one_file(self, filename):
         """read a single dictionary file"""
@@ -114,7 +105,6 @@ class Dictionary(object):
 
         return includes
 
-
     def read_dictionaries(self, filename, path):
         """read values from dictionary files"""
         full_name = os.path.join(path, filename)
@@ -123,7 +113,6 @@ class Dictionary(object):
                 self.read_dictionaries(fname, path)
             except IOError:
                 print "Error: cannot find a file"
-
 
     def read_dictionary(self, filename, path):
         self.read_dictionaries(filename, path)
@@ -140,17 +129,14 @@ class Dictionary(object):
 
         self.values = None
 
-
     def get_attribute(self, name):
         try:
             return self.attributes[name.lower()]
         except KeyError:
             raise ValueError("attribute not found")
 
-
     def __iter__(self):
         return iter(self.attributes)
-
 
     def __str__(self):
         contents = []
@@ -167,10 +153,8 @@ def get_dictionary(dict_path="dict", dict_file="dictionary"):
         __dictionary = Dictionary(__dict_path, __dict_file)
     return __dictionary
 
-
 def get_attribute(*args, **kwargs):
     return get_dictionary().get_attribute(*args, **kwargs)
-
 
 if __name__ == "__main__":
     try:

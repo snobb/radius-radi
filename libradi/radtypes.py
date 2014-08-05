@@ -64,7 +64,6 @@ class AddressType(AbstractType):
         except socket.error:
             raise ValueError("Invalid IP ip_string")
 
-
     def bits_to_ip4mask(self, num_bits):
         """convert integer number of bits in ipv4 netmask to string
         representation of the mask. Eg. '255.255.255.0'"""
@@ -75,19 +74,14 @@ class AddressType(AbstractType):
         else:
             raise ValueError("invalid IPv4 mask specified")
 
-
-
     def is_ipv6(self):
         return (":" in self.value)
-
 
     def __str__(self):
         return self.value
 
-
     def __len__(self):
         return len(self.bin_ip_string)
-
 
     def dump(self):
         return bytes(self.bin_ip_string)
@@ -100,14 +94,11 @@ class TextType(AbstractType):
         if not value:
             raise ValueError("Empty strings are not allowed (rfc2866)")
 
-
     def __len__(self):
         return len(self.value)
 
-
     def __str__(self):
         return str(self.value)
-
 
     def dump(self):
         return struct.pack("!%ss" % len(self.value), self.value)
@@ -131,14 +122,11 @@ class NumericBaseType(AbstractType):
         self.pattern = None     # struct pattern
         self.length = length
 
-
     def __len__(self):
         return self.length * self.byte_length
 
-
     def __str__(self):
         return str(self.value)
-
 
     def dump(self):
         values = get_numeric_array(self.value, self.length, self.byte_length)
@@ -175,14 +163,11 @@ class ContainerType(object):
     def __init__(self, *args):
         self.values = args
 
-
     def __len__(self):
         return sum([len(value) for value in self.values])
 
-
     def __str__(self):
         return "".join([str(value) for value in self.values])
-
 
     def dump(self):
         """dump binary representation of the contained values"""
@@ -205,7 +190,6 @@ _types = {
     "tlv"       : None,
     }
 
-
 def get_numeric_array(value, num, byte_len):
     """get an array of 'num' binary chunks 'byte_len' each"""
     assert(type(value) == long or type(value) == int)
@@ -214,14 +198,12 @@ def get_numeric_array(value, num, byte_len):
     return [value >> (n*bit_len) & mask
             for n in range(num-1, -1, -1)]
 
-
 def get_type_obj(type_name):
     """Get a type object by name"""
     global _types
     if type_name in _types:
         return _types[type_name]
     raise NotImplementedError("ERROR: the type is not implemented")
-
 
 def get_type_instance(type_name, *args, **kwargs):
     """Get a type object instance by name"""

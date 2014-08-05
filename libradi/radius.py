@@ -59,7 +59,6 @@ class RadiusAvp(object):
                     avp_value)
         self.validate_values()
 
-
     def validate_values(self):
         """check if the values are in the allowed range in case the AVP has
         a list of defined values"""
@@ -71,10 +70,8 @@ class RadiusAvp(object):
 
         return True
 
-
     def has_sub_avps(self):
         return len(self.avp_subavp) > 0
-
 
     def dump(self):
         """dump the binary representation of the AVP"""
@@ -89,11 +86,9 @@ class RadiusAvp(object):
             return "".join(value + subavps)
         return "".join(value)
 
-
     def __len__(self):
         avp_subavp_len = sum(map(lambda child: len(child), self.avp_subavp))
         return 2 + len(self.avp_value) + avp_subavp_len
-
 
     def __str__(self):
         contents = ["AVP: Type:{}({})  Length:{}  Value:{}\n".format(
@@ -110,7 +105,6 @@ class RadiusAcctRequest(object):
     # Radius accounting header templates
     RADIUS_HDR_TMPL="!BBH16s"
 
-
     """Radius accounting request object"""
     def __init__(self, secret):
         self.code = 4
@@ -119,18 +113,15 @@ class RadiusAcctRequest(object):
         self.secret = secret
         self.avp_list = []
 
-
     def add_avp(self, avp):
         """add an AVP class to the list of the packets AVPs"""
         if avp and isinstance(avp, RadiusAvp):
             self.avp_list.append(avp)
             self.length += len(avp)
 
-
     def get_all_avps_contents(self):
         """return binary contents of all AVPs in the requests"""
         return "".join([avp.dump() for avp in self.avp_list])
-
 
     def compute_authenticator(self, avps):
         """gets the avp binary contents as an argument and returns computed
@@ -145,7 +136,6 @@ class RadiusAcctRequest(object):
         packet = "".join([header, avps, self.secret])
         return hashlib.md5(packet).digest()
 
-
     def dump(self):
         """dump binary version of the Radius Request packet payload
         including AVPs"""
@@ -158,10 +148,8 @@ class RadiusAcctRequest(object):
                 auth)
         return "".join([header, avps])
 
-
     def __len__(self):
         return self.length
-
 
     def __str__(self):
         auth = self.compute_authenticator(self.get_all_avps_contents())
@@ -169,7 +157,5 @@ class RadiusAcctRequest(object):
                 self.code, self.pid, len(self), auth.encode("hex"))
         avps = "".join([str(avp) for avp in self.avp_list])
         return "".join((header, avps))
-
-
 
 # vim: ts=4 sts=4 sw=4 tw=80 ai smarttab et fo=rtcq list
