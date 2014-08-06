@@ -30,8 +30,6 @@ class RadTypesTest(unittest.TestCase):
         self.assertEquals("B", byte.pattern)
         self.assertEquals(4, byte.length)
         self.assertEquals(4, len(byte))
-        self.assertEquals((0x11, 0xaa, 0x22, 0xbb),
-            tuple(libradi.radtypes.get_numeric_array(0x11aa22bb, 4, 1)))
         self.assertEquals("\x11\xaa\x22\xbb", byte.dump())
 
     def test_integer_type(self):
@@ -48,8 +46,6 @@ class RadTypesTest(unittest.TestCase):
         self.assertEquals("L", integer.pattern)
         self.assertEquals(2, integer.length)
         self.assertEquals(8, len(integer))
-        self.assertEquals((0x11, 0xaa, 0x22, 0xbb),
-            tuple(libradi.radtypes.get_numeric_array(0x11aa22bb, 4, 1)))
         self.assertEquals("\x00\x00\x00\x00\x11\xaa\x22\xbb", integer.dump())
 
     def test_short_type(self):
@@ -66,8 +62,6 @@ class RadTypesTest(unittest.TestCase):
         self.assertEquals("h", short.pattern)
         self.assertEquals(2, short.length)
         self.assertEquals(4, len(short))
-        self.assertEquals((0x11, 0xaa, 0x22, 0xbb),
-            tuple(libradi.radtypes.get_numeric_array(0x11aa22bb, 4, 1)))
         self.assertEquals("\x11\xaa\x22\xbb", short.dump())
 
     def test_bits_to_ip4mask(self):

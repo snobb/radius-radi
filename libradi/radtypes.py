@@ -129,7 +129,11 @@ class NumericBaseType(AbstractType):
         return str(self.value)
 
     def dump(self):
-        values = get_numeric_array(self.value, self.length, self.byte_length)
+        assert(type(self.value) == long or type(self.value) == int)
+        bit_len = self.byte_length * 8
+        mask = (1 << bit_len)-1
+        values = [self.value >> (n*bit_len) & mask
+                for n in range(self.length-1, -1, -1)]
         return struct.pack("!{}{}".format(len(values),self.pattern), *values)
 
 
@@ -190,13 +194,6 @@ _types = {
     "tlv"       : None,
     }
 
-def get_numeric_array(value, num, byte_len):
-    """get an array of 'num' binary chunks 'byte_len' each"""
-    assert(type(value) == long or type(value) == int)
-    bit_len = byte_len * 8
-    mask = (1 << bit_len)-1
-    return [value >> (n*bit_len) & mask
-            for n in range(num-1, -1, -1)]
 
 def get_type_obj(type_name):
     """Get a type object by name"""
