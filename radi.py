@@ -83,37 +83,34 @@ class Config(object):
 def create_packet(config):
     """generate a binary version of the packet based on the current config"""
     rad = RadiusAcctRequest(config.radius_secret)
-    rad.add_avp(RadiusAvp("User-Name", TextType(config.username)))
-    rad.add_avp(RadiusAvp("Acct-Status-Type", IntegerType(config.action)))
+    rad.add_avp(RadiusAvp("User-Name", config.username))
+    rad.add_avp(RadiusAvp("Acct-Status-Type", config.action))
 
     if is_ipv6(config.radius_dest):
-        rad.add_avp(RadiusAvp("NAS-IPv6-Address",
-            AddressType(config.radius_dest, True)))
+        rad.add_avp(RadiusAvp("NAS-IPv6-Address", config.radius_dest))
     else:
-        rad.add_avp(RadiusAvp("NAS-IP-Address",
-            AddressType(config.radius_dest)))
+        rad.add_avp(RadiusAvp("NAS-IP-Address", config.radius_dest))
 
     if is_ipv6(config.framed_ip):
-        rad.add_avp(RadiusAvp("Framed-IPv6-Prefix",
-            ContainerType(
+        rad.add_avp(RadiusAvp("Framed-IPv6-Prefix", ContainerType(
                 ByteType(0),
                 ByteType(config.framed_mask),
                 AddressType(config.framed_ip, True))))
     else:
-        rad.add_avp(RadiusAvp("Framed-IP-Address",
-            AddressType(config.framed_ip)))
-        rad.add_avp(RadiusAvp("Framed-IP-Netmask",
-            AddressType(bits_to_ip4mask(config.framed_mask))))
+        rad.add_avp(RadiusAvp("Framed-IP-Address", config.framed_ip))
+        rad.add_avp(RadiusAvp("Framed-IP-Netmask", bits_to_ip4mask(config.framed_mask)))
 
-    rad.add_avp(RadiusAvp("Framed-Protocol", IntegerType(FRAMED_PROTO_PPP)))
-    rad.add_avp(RadiusAvp("Calling-Station-Id", TextType(config.calling_id)))
-    rad.add_avp(RadiusAvp("Called-Station-Id", TextType(config.called_id)))
+    rad.add_avp(RadiusAvp("Framed-Protocol", FRAMED_PROTO_PPP))
+    rad.add_avp(RadiusAvp("Calling-Station-Id", config.calling_id))
+    rad.add_avp(RadiusAvp("Called-Station-Id", config.called_id))
 
-    rad.add_avp(RadiusAvp("3GPP-User-Location-Info",
-        TextType(config.subs_loc_info)))
+    rad.add_avp(RadiusAvp("3GPP-User-Location-Info", config.subs_loc_info))
 
-    rad.add_avp(RadiusAvp("3GPP-IMSI", TextType(config.imsi)))
-    rad.add_avp(RadiusAvp("3GPP-IMEISV", TextType(config.imei)))
+    rad.add_avp(RadiusAvp("3GPP-IMSI", config.imsi))
+    rad.add_avp(RadiusAvp("3GPP-IMEISV", config.imei))
+
+    for name, value in config.avp:
+        rad.add_avp(RadiusAvp(name, value))
 
     debug(str(rad))
 
@@ -173,6 +170,7 @@ def usage():
         "                        3GPP calling id\n"
         "  -C CALLED_ID, --called-id CALLED_ID\n"
         "                        3GPP called id\n"
+        "  -a, --avp NAME=VALUE  add an avp (can be repeted multiple times)\n"
         "  -D, --delay DELAY     the delay between stopping and starting\n"
         "                        the session in the restart mode (-R/--restart)\n"
         "  -L, --clean           clean the cached configuration\n"
@@ -181,15 +179,24 @@ def usage():
         "             will be used. Eg. -S -R -T will run the session\n"
         "             stop (-T/--stop).\n")
 
+def parse_avp(value):
+    """parse avpname=avpvalue pair to a tuple"""
+    try:
+        name, value = strip("=")
+    except ValueError:
+        raise ValueError("invalid avp format")
+    assert(name != None and value != None)
+    return (name, value)
+
 def parse_args():
     """parse CLI arguments"""
     global __verbose__
     config = dict()
     config["name"] = sys.argv.pop(0)
     try:
-        opt_list, arg_list = getopt.getopt(sys.argv, "hd:p:STRi:t:f:c:C:D:Lv",
+        opt_list, arg_list = getopt.getopt(sys.argv, "hd:p:STRi:t:f:c:C:a:D:Lv",
                 ["help", "destination", "secret", "start", "stop", "restart",
-                "id", "id-type", "framed-ip", "calling-id", "called_id",
+                "id", "id-type", "framed-ip", "calling-id", "called_id", "avp",
                 "delay", "clean", "verbose"])
     except getopt.GetoptError as err:
         usage()
@@ -224,6 +231,8 @@ def parse_args():
             config["calling_id"] = value
         elif opt in ("-C", "--called-id"):
             config["called_id"] = value
+        elif opt in ("-a", "--avp"):
+            config["avps"].append(parse_avp(value))
         elif opt in ("-D", "--delay"):
             config["delay"] = value
         elif opt in ("-L", "--clean"):
