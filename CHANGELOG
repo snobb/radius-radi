@@ -1,0 +1,15 @@
+RELEASE v0.05 - first working version of the new radi
+    CHANGES:
+    - introduced dictionary functionality. The tool is capable of reading
+      the free radius dictionaries and use the data to determine
+      the correct type/value for the given AVP name.
+    - most of the functionality was moved to a libradi library, so that
+      it will be easy to use the functionality in other projects
+
+    TODO:
+    - Implement the missing types (eg. ipv6prefix)
+    - RadiusAcctRequest is mostly from old radi, so no unit tests were
+      implemented. Need to fix that.
+    - Add more unit tests for __str__ methods of dictionary, etc.
+    - Add unit tests for EVERYTHING
+    - polish & refactor

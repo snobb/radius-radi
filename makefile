@@ -1,6 +1,8 @@
 check: test
+	@echo testing project
+
 test:
-	python -m unittest discover -s tests/
+	python -m unittest discover tests
 
 run:
 	python radi.py

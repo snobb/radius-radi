@@ -65,15 +65,14 @@ class RadTypesTest(unittest.TestCase):
         self.assertEquals("\x11\xaa\x22\xbb", short.dump())
 
     def test_bits_to_ip4mask(self):
-        addr = libradi.radtypes.get_type_instance("ipaddr", "10.0.0.1")
         with self.assertRaises(ValueError) as cm:
-            addr.bits_to_ip4mask(33)
-            addr.bits_to_ip4mask(-1)
-        self.assertEquals("255.0.0.0", addr.bits_to_ip4mask(8))
-        self.assertEquals("255.255.0.0", addr.bits_to_ip4mask(16))
-        self.assertEquals("255.255.255.0", addr.bits_to_ip4mask(24))
-        self.assertEquals("255.255.255.255", addr.bits_to_ip4mask(32))
-        self.assertEquals("255.255.248.0", addr.bits_to_ip4mask(21))
+            libradi.radtypes.bits_to_ip4mask(33)
+            libradi.radtypes.bits_to_ip4mask(-1)
+        self.assertEquals("255.0.0.0", libradi.radtypes.bits_to_ip4mask(8))
+        self.assertEquals("255.255.0.0", libradi.radtypes.bits_to_ip4mask(16))
+        self.assertEquals("255.255.255.0", libradi.radtypes.bits_to_ip4mask(24))
+        self.assertEquals("255.255.255.255", libradi.radtypes.bits_to_ip4mask(32))
+        self.assertEquals("255.255.248.0", libradi.radtypes.bits_to_ip4mask(21))
 
     def test_address_type_ipv4(self):
         addr = libradi.radtypes.get_type_instance("ipaddr", "10.0.0.1")

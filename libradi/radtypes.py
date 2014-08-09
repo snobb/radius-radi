@@ -64,16 +64,6 @@ class AddressType(AbstractType):
         except socket.error:
             raise ValueError("Invalid IP ip_string")
 
-    def bits_to_ip4mask(self, num_bits):
-        """convert integer number of bits in ipv4 netmask to string
-        representation of the mask. Eg. '255.255.255.0'"""
-        if 0 <= num_bits <= 32:
-            bits = 0xffffffff ^ ((1 << (32 - num_bits)) - 1)
-            ip4_bytes = [str((bits >> 8*n) & 0xff) for n in range(3, -1, -1)]
-            return ".".join(ip4_bytes)
-        else:
-            raise ValueError("invalid IPv4 mask specified")
-
     def is_ipv6(self):
         return (":" in self.value)
 
@@ -184,7 +174,7 @@ _types = {
     "octets"    : TextType,
     "ipaddr"    : AddressType,
     "ipv6addr"  : AddressType,
-    "ipv6prefix": AddressType,
+    "ipv6prefix": None,
     "ether"     : None,
     "date"      : None,
     "integer"   : IntegerType,
@@ -194,6 +184,16 @@ _types = {
     "tlv"       : None,
     }
 
+
+def bits_to_ip4mask(num_bits):
+    """convert integer number of bits in ipv4 netmask to string
+    representation of the mask. Eg. '255.255.255.0'"""
+    if 0 <= num_bits <= 32:
+        bits = 0xffffffff ^ ((1 << (32 - num_bits)) - 1)
+        ip4_bytes = [str((bits >> 8*n) & 0xff) for n in range(3, -1, -1)]
+        return ".".join(ip4_bytes)
+    else:
+        raise ValueError("invalid IPv4 mask specified")
 
 def get_type_obj(type_name):
     """Get a type object by name"""

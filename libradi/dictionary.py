@@ -133,7 +133,7 @@ class Dictionary(object):
         try:
             return self.attributes[name.lower()]
         except KeyError:
-            raise ValueError("attribute not found")
+            raise ValueError("attribute {} not found".format(name))
 
     def __iter__(self):
         return iter(self.attributes)

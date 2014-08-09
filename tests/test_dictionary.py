@@ -16,7 +16,8 @@ class AVPTest(unittest.TestCase):
         pass
 
     def test_attributes(self):
-        self.assertEquals(454, len(libradi.dictionary.get_dictionary().attributes))
+        self.assertEquals(454,
+                len(libradi.dictionary.get_dictionary().attributes))
 
     def test_values(self):
         """NAS-Port-Type values are defined in several files.
@@ -54,5 +55,18 @@ class AVPTest(unittest.TestCase):
                 ])
         values = [(name, val.value) for name, val in iter(values)]
         self.assertEquals(exp_values, set(values))
+
+    def test_str(self):
+        attr = libradi.dictionary.get_attribute("framed-ip-address")
+        self.assertIsNotNone(attr)
+        exp_str = ("ATTRIBUTE:\tid: 8, name: Framed-IP-Address, "
+                "type: ipaddr")
+        self.assertEquals(exp_str, str(attr))
+
+        attr = libradi.dictionary.get_attribute("3gpp-ggsn-address")
+        self.assertIsNotNone(attr)
+        exp_str = ("ATTRIBUTE:\tid: 7, name: 3GPP-GGSN-Address, type: "
+                "ipaddr\n\tVENDOR:\tname: 3GPP, id: 10415")
+        self.assertEquals(exp_str, str(attr))
 
 # vim: ts=4 sts=4 sw=4 tw=80 ai smarttab et fo=rtcq list

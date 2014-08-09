@@ -5,6 +5,7 @@
 #
 
 import struct
+import hashlib
 import radtypes
 import dictionary
 
@@ -91,13 +92,13 @@ class RadiusAvp(object):
         return 2 + len(self.avp_value) + avp_subavp_len
 
     def __str__(self):
-        contents = ["AVP: Type:{}({})  Length:{}  Value:{}\n".format(
-                self.avp_def.attr_name, self.avp_def.avp_type,
+        contents = ["AVP: Type:{}({})  Length:{}  Value:{}".format(
+                self.avp_def.attr_name, self.avp_def.attr_type,
                 len(self),
                 str(self.avp_value))]
-        if len(self.avp_subavp) > 0:
-            for subavp in self.avp_subavp():
-                contents.append("\n`- {}".format(str(subavp)))
+        if self.has_sub_avps():
+            for subavp in self.avp_subavp:
+                contents.append("`- {}".format(str(subavp)))
         return "\n".join(contents)
 
 
@@ -141,7 +142,7 @@ class RadiusAcctRequest(object):
         including AVPs"""
         avps = self.get_all_avps_contents()
         auth = self.compute_authenticator(avps)
-        header = struct.pack(RADIUS_HDR_TMPL,
+        header = struct.pack(RadiusAcctRequest.RADIUS_HDR_TMPL,
                 self.code,
                 self.pid,
                 len(self),

@@ -93,5 +93,19 @@ class AVPTest(unittest.TestCase):
                 0x1a16000028af01103132333435363738393031323334, len(avp))
         self.assertEquals(exp_bin.dump(), avp.dump())
 
+    def test_avp_str(self):
+        avp = libradi.RadiusAvp("Framed-IP-Address", "10.0.0.1")
+        self.assertIsNotNone(avp)
+        exp_str = ("AVP: Type:Framed-IP-Address(ipaddr)  Length:6  "
+                "Value:10.0.0.1")
+        self.assertEquals(exp_str, str(avp))
+
+        avp = libradi.RadiusAvp("3GPP-IMSI", "123456789")
+        self.assertIsNotNone(avp)
+        exp_str = ("AVP: Type:Vendor-Specific(octets)  Length:17  "
+                "Value:10415\n`- AVP: Type:3GPP-IMSI(string)  "
+                "Length:11  Value:123456789")
+        self.assertEquals(exp_str, str(avp))
+
 
 # vim: ts=4 sts=4 sw=4 tw=80 ai smarttab et fo=rtcq list

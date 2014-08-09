@@ -6,9 +6,10 @@
 
 import getopt, sys
 import struct, socket
-import pickle, hashlib
+import pickle
+import libradi
 
-__version__ = "0.04"
+__version__ = "0.05"
 
 # Radius-Request
 #    0                   1                   2                   3
@@ -39,10 +40,6 @@ __version__ = "0.04"
 #   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 #   |     Type      |    Length     |  String ...
 #   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-
-# Radius accounting header templates
-RADIUS_HDR_TMPL="!BBH16s"
-RADIUS_AVP_TMPL="!BB%ss"
 
 # actions
 RESTART, START, STOP = range(3) # also ACCT_STATUS_TYPE start/stop
@@ -75,42 +72,50 @@ class Config(object):
         self.delay = 1
         self.action = START
 
+        self.avps = []
+
     def update(self, config):
         """merge the current object with 'config' dictionary"""
         self.__dict__.update(config)
 
+def is_ipv6(ipaddr):
+    return ":" in ipaddr
 
 def create_packet(config):
     """generate a binary version of the packet based on the current config"""
-    rad = RadiusAcctRequest(config.radius_secret)
-    rad.add_avp(RadiusAvp("User-Name", config.username))
-    rad.add_avp(RadiusAvp("Acct-Status-Type", config.action))
+    rad = libradi.RadiusAcctRequest(config.radius_secret)
+    rad.add_avp(libradi.RadiusAvp("User-Name", config.username))
+    rad.add_avp(libradi.RadiusAvp("Acct-Status-Type", config.action))
 
     if is_ipv6(config.radius_dest):
-        rad.add_avp(RadiusAvp("NAS-IPv6-Address", config.radius_dest))
+        rad.add_avp(libradi.RadiusAvp("NAS-IPv6-Address", config.radius_dest))
     else:
-        rad.add_avp(RadiusAvp("NAS-IP-Address", config.radius_dest))
+        rad.add_avp(libradi.RadiusAvp("NAS-IP-Address", config.radius_dest))
 
     if is_ipv6(config.framed_ip):
-        rad.add_avp(RadiusAvp("Framed-IPv6-Prefix", ContainerType(
-                ByteType(0),
-                ByteType(config.framed_mask),
-                AddressType(config.framed_ip, True))))
+        # TODO: implement ipv6 prefix type
+        #
+        #rad.add_avp(libradi.RadiusAvp("Framed-IPv6-Prefix", ContainerType(
+        #        ByteType(0),
+        #        ByteType(config.framed_mask),
+        #        AddressType(config.framed_ip, True))))
+        pass
     else:
-        rad.add_avp(RadiusAvp("Framed-IP-Address", config.framed_ip))
-        rad.add_avp(RadiusAvp("Framed-IP-Netmask", bits_to_ip4mask(config.framed_mask)))
+        rad.add_avp(libradi.RadiusAvp("Framed-IP-Address", config.framed_ip))
+        rad.add_avp(libradi.RadiusAvp("Framed-IP-Netmask",
+            libradi.radtypes.bits_to_ip4mask(config.framed_mask)))
 
-    rad.add_avp(RadiusAvp("Framed-Protocol", FRAMED_PROTO_PPP))
-    rad.add_avp(RadiusAvp("Calling-Station-Id", config.calling_id))
-    rad.add_avp(RadiusAvp("Called-Station-Id", config.called_id))
+    rad.add_avp(libradi.RadiusAvp("Framed-Protocol", FRAMED_PROTO_PPP))
+    rad.add_avp(libradi.RadiusAvp("Calling-Station-Id", config.calling_id))
+    rad.add_avp(libradi.RadiusAvp("Called-Station-Id", config.called_id))
 
-    rad.add_avp(RadiusAvp("3GPP-User-Location-Info", config.subs_loc_info))
+    rad.add_avp(libradi.RadiusAvp("3GPP-Location-Info", config.subs_loc_info))
 
-    rad.add_avp(RadiusAvp("3GPP-IMSI", config.imsi))
-    rad.add_avp(RadiusAvp("3GPP-IMEISV", config.imei))
+    rad.add_avp(libradi.RadiusAvp("3GPP-IMSI", config.imsi))
+    rad.add_avp(libradi.RadiusAvp("3GPP-IMEISV", config.imei))
 
-    for name, value in config.avp:
-        rad.add_avp(RadiusAvp(name, value))
+    for name, value in config.avps:
+        rad.add_avp(libradi.RadiusAvp(name, value))
 
     debug(str(rad))
 
@@ -182,7 +187,7 @@ def usage():
 def parse_avp(value):
     """parse avpname=avpvalue pair to a tuple"""
     try:
-        name, value = strip("=")
+        name, value = value.split("=")
     except ValueError:
         raise ValueError("invalid avp format")
     assert(name != None and value != None)
@@ -232,7 +237,7 @@ def parse_args():
         elif opt in ("-C", "--called-id"):
             config["called_id"] = value
         elif opt in ("-a", "--avp"):
-            config["avps"].append(parse_avp(value))
+            config.setdefault("avps", []).append(parse_avp(value))
         elif opt in ("-D", "--delay"):
             config["delay"] = value
         elif opt in ("-L", "--clean"):
