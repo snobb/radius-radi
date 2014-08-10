@@ -6,6 +6,7 @@
 
 import struct
 import hashlib
+import socket
 import radtypes
 import dictionary
 
@@ -102,13 +103,13 @@ class RadiusAvp(object):
         return "\n".join(contents)
 
 
-class RadiusAcctRequest(object):
-    # Radius accounting header templates
+class RadiusMessage(object):
+    # Radius header templates
     RADIUS_HDR_TMPL="!BBH16s"
 
-    """Radius accounting request object"""
-    def __init__(self, secret):
-        self.code = 4
+    """Radius Message object"""
+    def __init__(self, secret, code=4):
+        self.code = code
         self.pid = 0xf5
         self.length = 20    # length so far
         self.secret = secret
@@ -129,7 +130,7 @@ class RadiusAcctRequest(object):
         authenticator of the radius request"""
         if not avps:
             raise ValueError("AVPs contents isn't defined")
-        header = struct.pack(RadiusAcctRequest.RADIUS_HDR_TMPL,
+        header = struct.pack(RadiusMessage.RADIUS_HDR_TMPL,
                 self.code,
                 self.pid,
                 len(self),
@@ -142,12 +143,24 @@ class RadiusAcctRequest(object):
         including AVPs"""
         avps = self.get_all_avps_contents()
         auth = self.compute_authenticator(avps)
-        header = struct.pack(RadiusAcctRequest.RADIUS_HDR_TMPL,
+        header = struct.pack(RadiusMessage.RADIUS_HDR_TMPL,
                 self.code,
                 self.pid,
                 len(self),
                 auth)
         return "".join([header, avps])
+
+    def send(self, destTuple):
+        """send the packet to the network
+        dest_tuple should be (dest_ip, dest_port)"""
+        if ":" in destTuple[0]: # is IPv6
+            sock = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
+            sock.setsockopt(socket.IPPROTO_IPV6, socket.IP_MULTICAST_TTL, 20)
+        else:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 20)
+        sock.sendto(self.dump(), destTuple)
+        sock.close()
 
     def __len__(self):
         return self.length

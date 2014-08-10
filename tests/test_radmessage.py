@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# test_radrequest.py
+# test_radmessage.py
 # Author: Alex Kozadaev (2014)
 #
 
@@ -8,9 +8,9 @@ import libradi
 import unittest
 
 
-class RadiusRequestTest(unittest.TestCase):
+class RadiusMessageTest(unittest.TestCase):
     def setUp(self):
-        self.request = libradi.RadiusAcctRequest("secret")
+        self.request = libradi.RadiusMessage("secret")
         self.assertIsNotNone(self.request)
 
     def tearDown(self):
@@ -76,7 +76,33 @@ class RadiusRequestTest(unittest.TestCase):
                 self.request.compute_authenticator(avps).encode("hex"))
 
     def test_dump(self):
-        self.fail("TODO: implement the dump test")
+        username = libradi.RadiusAvp("user-name", "johndoe")
+        status = libradi.RadiusAvp("acct-status-type", 1)
+        nas_ip = libradi.RadiusAvp("nas-ip-address", "127.0.0.1")
+        framed_ip = libradi.RadiusAvp("framed-ip-address", "10.0.0.1")
+        framed_mask = libradi.RadiusAvp("framed-ip-netmask", "255.255.255.255")
+        framed_proto = libradi.RadiusAvp("framed-protocol", 1)
+        calling_id = libradi.RadiusAvp("calling-station-id", "00441234987654")
+        called_id = libradi.RadiusAvp("called-station-id", "web.apn")
+        imsi = libradi.RadiusAvp("3gpp-imsi", "12345678901234")
+        imei = libradi.RadiusAvp("3gpp-imeisv", "3456789012345678901234567890")
+        self.request.add_avp(username)
+        self.request.add_avp(status)
+        self.request.add_avp(nas_ip)
+        self.request.add_avp(framed_ip)
+        self.request.add_avp(framed_mask)
+        self.request.add_avp(framed_proto)
+        self.request.add_avp(calling_id)
+        self.request.add_avp(called_id)
+        self.request.add_avp(imsi)
+        self.request.add_avp(imei)
+        # exported from the tcpdump
+        exp_message = ("04f5008ecf00f8a8355d79ff820361f2567a9e9501096a6f686e"
+                "646f6528060000000104067f00000108060a0000010906ffffffff07060"
+                "00000011f1030303434313233343938373635341e097765622e61706e1a"
+                "16000028af011031323334353637383930313233341a24000028af141e3"
+                "3343536373839303132333435363738393031323334353637383930")
+        self.assertEquals(exp_message, self.request.dump().encode("hex"))
 
     def test_request_string(self):
         username = libradi.RadiusAvp("user-name", "johndoe")

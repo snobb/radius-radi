@@ -8,8 +8,5 @@ RELEASE v0.05 - first working version of the new radi
 
     TODO:
     - Implement the missing types (eg. ipv6prefix)
-    - RadiusAcctRequest is mostly from old radi, so no unit tests were
-      implemented. Need to fix that.
-    - Add more unit tests for __str__ methods of dictionary, etc.
     - Add unit tests for EVERYTHING
     - polish & refactor

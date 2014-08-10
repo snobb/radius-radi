@@ -1,32 +1,18 @@
-libradi/raid A simple radius library/tool to start/stop subscriber session
+libradi/radi - A radius tool to start/stop subscriber session
+=============================================================
 
 DESIGN PROBLEMS TO SOLVE:
-    - the storage of the values in the dictionary structure (currently strings
-      regardless). Is the current way efficient?
+-------------------------
 
-    - Ideally the values should be stored in the radtypes classes so that the
-      values are comparable with the actual values in the AVPs. However given
-      the values will be supplied from GUI/CLI, they will all initially be
-      strings and then be converted. The validation process may be ambiguous in
-      this case though.
-      DONE: values in dictionary storage are now stored in radtypes objects.
-
-    - storage of values in the AVP data structures (currently it's the radtypes
-      classes).
-        - should the value be in string format and then converted by before
-          producing a dump?
-        - should I keep it as it is right now?
-
-    - the value storage currently is a list of tuples. [ (name, value), (name1,
-      value1) ].
-
-    - Given the size of the list isn't big, the linear search may be acceptable
-      here. Should I consider changing it to dictionary?
+   * storage of values in the AVP data structures (currently it's the radtypes classes).
+   * the value storage currently is a list of tuples. [ (name, value), (name1, value1) ].
+      * Given the size of the list isn't big, the linear search may be acceptable here. Should I consider changing it to dictionary?
       (Currently converting to dict every time we need to check)
 
 
 DESIGN OF THE DICTIONARY STRUCTURE:
-
+-----------------------------------
+```
     Dictionary = {
         ATTRIBUTE_NAME : AttributeDef Obj,
         ...
@@ -68,13 +54,15 @@ DESIGN OF THE DICTIONARY STRUCTURE:
                                 # files
         }
     }
+```
 
-    Each type MUST implement dump method that is used to get the binary
-    representation of the Attribute/Value value.
-
+Each type MUST implement dump method that is used to get the binary representation of the Attribute/Value value.
 
 
 DESIGN OF THE AVP OBJECT:
+-------------------------
+
+```
     class RadiusAvp {
         avp_def             # AttributeDef (definition of the attribute)
         avp_code            # number id value (IntegerType obj)
@@ -85,17 +73,18 @@ DESIGN OF THE AVP OBJECT:
             dump            # dump binary representation of the AVP
         }
     }
+```
 
-    Each type MUST implement dump method that is used to get the binary
-    representation of the AVP value.
+Each type MUST implement dump method that is used to get the binary representation of the AVP value.
 
 
 DESIGN OF RADTYPES OBJECT:
-    Most of the Radius types are derived from the AbstractType class.
-    AbstractType implements the comparator methods and __str__ and more
-    importantly leaves the method dump unimplemented so that each type class
-    implement it accordingly.
+--------------------------
 
+Most of the Radius types are derived from the AbstractType class.
+AbstractType implements the comparator methods and *\_\_str\_\_* and more importantly leaves the method dump unimplemented so that each type class implement it accordingly.
+
+```
     class AbstractType {
         fields {
             value   # stored value
@@ -116,20 +105,22 @@ DESIGN OF RADTYPES OBJECT:
             dump()  # dump the type value as a binary string
         }
     }
+```
 
-    Numeric class have the base NumericBaseType class which implements
-    common functionality.
+Numeric class have the base NumericBaseType class which implements common functionality.
 
-    Each type MUST implement dump method that is used to get the binary
-    representation of the Type value
+Each type MUST implement dump method that is used to get the binary representation of the Type value
 
 
 DESIGN OF LIBRADI LIBRARY:
+--------------------------
+
+```
     libradi.radtypes.*      # type objects for storing values as per
                             # dictionary attribute type
 
     libradi.dictionary.*    # functions related to dictionary
 
     libradi.*               # radius related objects/functions
-
+```
 

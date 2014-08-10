@@ -5,41 +5,11 @@
 #
 
 import getopt, sys
-import struct, socket
+import struct
 import pickle
 import libradi
 
 __version__ = "0.05"
-
-# Radius-Request
-#    0                   1                   2                   3
-#    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-#   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-#   |     Code      |  Identifier   |            Length             |
-#   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-#   |                                                               |
-#   |                     Request Authenticator                     |
-#   |                                                               |
-#   |                                                               |
-#   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-#   |  Attributes ...
-#   +-+-+-+-+-+-+-+-+-+-+-+-+-
-
-# Regular AVP
-#    0                   1                   2                   3
-#    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-#   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-#   |     Type      |    Length     |             Value
-#   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-#              Value (cont)         |
-#   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-
-# String VSA (normally encapsulated in a AVP)
-#    0                   1                   2
-#    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3
-#   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-#   |     Type      |    Length     |  String ...
-#   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
 # actions
 RESTART, START, STOP = range(3) # also ACCT_STATUS_TYPE start/stop
@@ -81,9 +51,9 @@ class Config(object):
 def is_ipv6(ipaddr):
     return ":" in ipaddr
 
-def create_packet(config):
+def create_radius_request(config):
     """generate a binary version of the packet based on the current config"""
-    rad = libradi.RadiusAcctRequest(config.radius_secret)
+    rad = libradi.RadiusMessage(config.radius_secret)
     rad.add_avp(libradi.RadiusAvp("User-Name", config.username))
     rad.add_avp(libradi.RadiusAvp("Acct-Status-Type", config.action))
 
@@ -119,22 +89,12 @@ def create_packet(config):
 
     debug(str(rad))
 
-    return bytes(rad.dump())
-
-def send_packet(destTuple, packet):
-    """send the packet to the network"""
-    if is_ipv6(destTuple[0]):
-        sock = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
-        sock.setsockopt(socket.IPPROTO_IPV6, socket.IP_MULTICAST_TTL, 20)
-    else:
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 20)
-    sock.sendto(packet, destTuple)
-    sock.close()
+    return rad
 
 def start_stop_session(config):
     """send start/stop session based on action in the config"""
-    send_packet((config.radius_dest, config.radius_port), create_packet(config))
+    create_radius_request(config).send(
+            (config.radius_dest, config.radius_port))
 
 def restart_session(config):
     """restart session
