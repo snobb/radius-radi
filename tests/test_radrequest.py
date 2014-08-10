@@ -49,12 +49,50 @@ class RadiusRequestTest(unittest.TestCase):
                 self.request.get_all_avps_contents())
 
     def test_authenticator(self):
-        self.fail("TODO: implement the authenticator test")
+        username = libradi.RadiusAvp("user-name", "johndoe")
+        status = libradi.RadiusAvp("acct-status-type", 1)
+        nas_ip = libradi.RadiusAvp("nas-ip-address", "127.0.0.1")
+        framed_ip = libradi.RadiusAvp("framed-ip-address", "10.0.0.1")
+        framed_mask = libradi.RadiusAvp("framed-ip-netmask", "255.255.255.255")
+        framed_proto = libradi.RadiusAvp("framed-protocol", 1)
+        calling_id = libradi.RadiusAvp("calling-station-id", "00441234987654")
+        called_id = libradi.RadiusAvp("called-station-id", "web.apn")
+        imsi = libradi.RadiusAvp("3gpp-imsi", "12345678901234")
+        imei = libradi.RadiusAvp("3gpp-imeisv", "3456789012345678901234567890")
+        self.request.add_avp(username)
+        self.request.add_avp(status)
+        self.request.add_avp(nas_ip)
+        self.request.add_avp(framed_ip)
+        self.request.add_avp(framed_mask)
+        self.request.add_avp(framed_proto)
+        self.request.add_avp(calling_id)
+        self.request.add_avp(called_id)
+        self.request.add_avp(imsi)
+        self.request.add_avp(imei)
+        avps = self.request.get_all_avps_contents()
+        # the result is recieved from a tcpdump from a packet created
+        # with radtool package.
+        self.assertEquals("cf00f8a8355d79ff820361f2567a9e95",
+                self.request.compute_authenticator(avps).encode("hex"))
 
     def test_dump(self):
         self.fail("TODO: implement the dump test")
 
     def test_request_string(self):
-        self.fail("TODO: implement the __str__ test")
+        username = libradi.RadiusAvp("user-name", "johndoe")
+        status = libradi.RadiusAvp("acct-status-type", 1)
+        self.request.add_avp(username)
+        self.request.add_avp(status)
+        self.assertEquals(2, len(self.request.avp_list))
+        avps = self.request.get_all_avps_contents()
+        exp_str = ("REQUEST:  Code:{}  PID:{}  Length:{}  Auth:{}"
+                "\n {}\n {}").format(
+                        self.request.code,
+                        self.request.pid,
+                        len(self.request),
+                        self.request.compute_authenticator(avps).encode("hex"),
+                        self.request.avp_list[0],
+                        self.request.avp_list[1])
+        self.assertEquals(exp_str, str(self.request))
 
 # vim: ts=4 sts=4 sw=4 tw=80 ai smarttab et fo=rtcq list

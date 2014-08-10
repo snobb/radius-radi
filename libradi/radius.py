@@ -154,9 +154,9 @@ class RadiusAcctRequest(object):
 
     def __str__(self):
         auth = self.compute_authenticator(self.get_all_avps_contents())
-        header = "HEADER:  Code:{%d}  PID{%d}  Length:{%d}  Auth{%s}\n" % (
+        header = "REQUEST:  Code:%d  PID:%d  Length:%d  Auth:%s\n" % (
                 self.code, self.pid, len(self), auth.encode("hex"))
-        avps = "".join([str(avp) for avp in self.avp_list])
+        avps = "\n".join([" {}".format(str(avp)) for avp in self.avp_list])
         return "".join((header, avps))
 
 # vim: ts=4 sts=4 sw=4 tw=80 ai smarttab et fo=rtcq list
