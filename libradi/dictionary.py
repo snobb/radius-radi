@@ -108,11 +108,11 @@ class Dictionary(object):
     def read_dictionaries(self, filename, path):
         """read values from dictionary files"""
         full_name = os.path.join(path, filename)
-        for fname in self.read_one_file(full_name):
-            try:
+        try:
+            for fname in self.read_one_file(full_name):
                 self.read_dictionaries(fname, path)
-            except IOError:
-                print "Error: cannot find a file"
+        except IOError as e:
+            raise IOError("Cannot read dictionary (IOError)")
 
     def read_dictionary(self, filename, path):
         self.read_dictionaries(filename, path)

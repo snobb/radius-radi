@@ -250,7 +250,9 @@ if __name__ == "__main__":
     except (KeyboardInterrupt):
         print "Interrupted... Exiting"
         sys.exit(1)
-    except (ValueError, NotImplementedError, IOError) as e:
-        print "ERROR: %s" % e.message
+    except (ValueError, IOError) as e:
+        print "ERROR: {}".format(e.message)
+    except (NotImplementedError) as e:
+        print "Not Implemented: {}".format(e.message)
 
 # vim: set ts=4 sts=4 sw=4 tw=80 ai smarttab et list
