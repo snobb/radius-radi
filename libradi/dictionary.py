@@ -145,11 +145,15 @@ class Dictionary(object):
         return "\n".join(contents)
 
 
-def get_dictionary(dict_path="dict", dict_file="dictionary"):
-    global __dict_file, __dict_path, __dictionary
+def initialize(dict_path="dict", dict_file="dictionary"):
+    global __dict_file, __dict_path
     __dict_path = dict_path
     __dict_file = dict_file
+
+def get_dictionary():
+    global __dictionary
     if not __dictionary:
+        global __dict_file, __dict_path
         __dictionary = Dictionary(__dict_path, __dict_file)
     return __dictionary
 

@@ -67,8 +67,8 @@ class RadiusAvp(object):
         if self.avp_def.has_defined_values():
             defined_values = dict(self.avp_def.attr_defined_values)
             if self.avp_value not in defined_values.values():
-                raise ValueError("value {} is not allowed".format(
-                    self.avp_value, type(self.avp_value)))
+                raise ValueError("{} - value {} is not allowed".format(
+                    self.avp_def.attr_name, self.avp_value))
 
         return True
 
@@ -99,7 +99,7 @@ class RadiusAvp(object):
                 str(self.avp_value))]
         if self.has_sub_avps():
             for subavp in self.avp_subavp:
-                contents.append("`- {}".format(str(subavp)))
+                contents.append("  `- {}".format(str(subavp)))
         return "\n".join(contents)
 
 

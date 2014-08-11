@@ -6,10 +6,10 @@ RELEASE v0.05 - first working version of the new radi
     - most of the functionality was moved to a libradi library, so that
       it will be easy to use the functionality in other projects
     - ipv6prefix type implemented
-
+    - now the path to the dictionary files can be specified as a CLI
+      parameter and the default path can be specified in the config (radi.py)
+ 
     TODO:
     - Implement the missing types (eg. tlv, ether or date)
     - Add unit tests for EVERYTHING
-    - Add control over the path where the dictionary is to the UI. So far
-      it will only work if the dict folder in next to the radi.py script.
     - polish & refactor

@@ -103,7 +103,7 @@ class AVPTest(unittest.TestCase):
         avp = libradi.RadiusAvp("3GPP-IMSI", "123456789")
         self.assertIsNotNone(avp)
         exp_str = ("AVP: Type:Vendor-Specific(octets)  Length:17  "
-                "Value:10415\n`- AVP: Type:3GPP-IMSI(string)  "
+                "Value:10415\n  `- AVP: Type:3GPP-IMSI(string)  "
                 "Length:11  Value:123456789")
         self.assertEquals(exp_str, str(avp))
 

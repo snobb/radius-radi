@@ -5,23 +5,27 @@
 #
 
 import getopt, sys
+import os.path
 import struct
 import pickle
 import libradi
 
 __version__ = "0.05"
 
-# actions
-RESTART, START, STOP = range(3) # also ACCT_STATUS_TYPE start/stop
+# Globals
 __verbose__ = False     # enabling verbose logging
 
 # Constants
+RESTART, START, STOP = range(3) # also ACCT_STATUS_TYPE start/stop
 FRAMED_PROTO_PPP = 1
-PICKLED_FILE_NAME = "./.%s.dat" % __file__
+PICKLED_FILE_NAME = "{}/.{}.dat".format(
+        os.path.curdir, os.path.basename(__file__))
 
 class Config(object):
     """config storage object"""
     def __init__(self):
+        self.dict_path = "dict"
+        self.dict_fname = "dictionary"
         self.radius_dest = "127.0.0.1"
         self.radius_port = 1813
         self.radius_secret = "secret"
@@ -138,6 +142,8 @@ def usage():
         "  -D, --delay DELAY     the delay between stopping and starting\n"
         "                        the session in the restart mode (-R/--restart)\n"
         "  -L, --clean           clean the cached configuration\n"
+        "  -P, --path <path to dictionary>\n"
+        "                        path to the dictionary files\n"
         "  -v, --verbose         enable verbose output\n\n"
         "PLEASE NOTE: If action is specified multiple times, the last one\n"
         "             will be used. Eg. -S -R -T will run the session\n"
@@ -158,10 +164,10 @@ def parse_args():
     config = dict()
     config["name"] = sys.argv.pop(0)
     try:
-        opt_list, arg_list = getopt.getopt(sys.argv, "hd:p:STRi:t:f:c:C:a:D:Lv",
+        opt_list, arg_list = getopt.getopt(sys.argv, "hd:p:STRi:t:f:c:C:a:D:LP:v",
                 ["help", "destination", "secret", "start", "stop", "restart",
                 "id", "id-type", "framed-ip", "calling-id", "called_id", "avp",
-                "delay", "clean", "verbose"])
+                "delay", "clean", "path", "verbose"])
     except getopt.GetoptError as err:
         usage()
         print "\n%s" % str(err)
@@ -201,6 +207,8 @@ def parse_args():
             config["delay"] = value
         elif opt in ("-L", "--clean"):
             config["cleancache"] = True
+        elif opt in ("-P", "--path"):
+            config["dict_path"] = value
         elif opt in ("-v", "--verbose"):
             __verbose__ = True
 
@@ -231,6 +239,8 @@ def main(config):
     action_strings = ["Restarting", "Starting", "Stoping"]
 
     debug("%s the session" % action_strings[config.action])
+    libradi.dictionary.initialize(config.dict_path,
+            config.dict_fname)
 
     if config.action == RESTART:
         restart_session(config)
@@ -255,4 +265,3 @@ if __name__ == "__main__":
     except (NotImplementedError) as e:
         print "Not Implemented: {}".format(e.message)
 
-# vim: set ts=4 sts=4 sw=4 tw=80 ai smarttab et list
