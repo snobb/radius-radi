@@ -94,6 +94,27 @@ class RadTypesTest(unittest.TestCase):
                 0x2001abcd000000000000000000000001, 16)
         self.assertEquals(exp_bin.dump(), addr.dump())
 
+    def test_address_type_ipv6_prefix(self):
+        ipv6pref = libradi.radtypes.get_type_instance("ipv6prefix",
+                "2001:db4::/24")
+        self.assertIsNotNone(ipv6pref)
+        self.assertEquals(24, ipv6pref.mask)
+        self.assertEquals("20010db4000000000000000000000000",
+                ipv6pref.bin_ip_string.encode("hex"))
+        self.assertEquals(18, len(ipv6pref))
+        self.assertEquals("001820010db4000000000000000000000000",
+                ipv6pref.dump().encode("hex"))
+
+        ipv6pref = libradi.radtypes.get_type_instance("ipv6prefix",
+                "2001:cccc::1")
+        self.assertIsNotNone(ipv6pref)
+        self.assertEquals(128, ipv6pref.mask)
+        self.assertEquals("2001cccc000000000000000000000001",
+                ipv6pref.bin_ip_string.encode("hex"))
+        self.assertEquals(18, len(ipv6pref))
+        self.assertEquals("00802001cccc000000000000000000000001",
+                ipv6pref.dump().encode("hex"))
+
     def test_text_type(self):
         addr = libradi.radtypes.get_type_instance("string", "helloworld")
         self.assertIsNotNone(addr)

@@ -5,8 +5,11 @@ RELEASE v0.05 - first working version of the new radi
       the correct type/value for the given AVP name.
     - most of the functionality was moved to a libradi library, so that
       it will be easy to use the functionality in other projects
+    - ipv6prefix type implemented
 
     TODO:
-    - Implement the missing types (eg. ipv6prefix)
+    - Implement the missing types (eg. tlv, ether or date)
     - Add unit tests for EVERYTHING
+    - Add control over the path where the dictionary is to the UI. So far
+      it will only work if the dict folder in next to the radi.py script.
     - polish & refactor

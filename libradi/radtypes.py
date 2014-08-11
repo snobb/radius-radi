@@ -77,6 +77,44 @@ class AddressType(AbstractType):
         return bytes(self.bin_ip_string)
 
 
+class AddressIPv6PrefixType(AbstractType):
+    """IP ip_string data type"""
+    def __init__(self, value, mask=None):
+        super(AddressIPv6PrefixType, self).__init__(str(value))
+
+        if not self.is_ipv6():
+            raise ValueError("Invalid input: {}".format(value))
+
+        self.family = socket.AF_INET6
+
+        if mask:
+            self.ipv6addr, self.mask = value, min(int(mask), 128)
+        else:
+            if "/" in value:
+                self.ipv6addr, self.mask = value.split("/")
+                self.mask = min(int(self.mask), 128)
+            else:
+                self.ipv6addr, self.mask = value, 128
+
+        try:
+            self.bin_ip_string = socket.inet_pton(self.family, self.ipv6addr)
+        except socket.error:
+            raise ValueError("Invalid IPv6 prefix: {}".format(self.ipv6addr))
+
+    def is_ipv6(self):
+        return (":" in self.value)
+
+    def __str__(self):
+        return self.value
+
+    def __len__(self):
+        return len(self.bin_ip_string)+2
+
+    def dump(self):
+        short = ShortType(self.mask)
+        return "".join((ShortType(self.mask).dump(), self.bin_ip_string))
+
+
 class TextType(AbstractType):
     """Text data type"""
     def __init__(self, value):
@@ -174,7 +212,7 @@ _types = {
     "octets"    : TextType,
     "ipaddr"    : AddressType,
     "ipv6addr"  : AddressType,
-    "ipv6prefix": None,
+    "ipv6prefix": AddressIPv6PrefixType,
     "ether"     : None,
     "date"      : None,
     "integer"   : IntegerType,

@@ -14,6 +14,7 @@ install: build
 	python setup.py install --record install.log
 
 clean:
+	-rm -rf .radi.py.dat
 	-rm -rf *.pyc
 	-rm -rf libradi/*.pyc
 	-rm -rf tests/*.pyc

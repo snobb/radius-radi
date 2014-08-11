@@ -29,7 +29,7 @@ class Config(object):
         self.imsi = "12345678901234"
         self.imei = "3456789012345678901234567890"
         self.framed_ip ="10.0.0.1"
-        self.framed_mask = 32
+        self.framed_mask = None
         self.calling_id = "00441234987654"
         self.called_id = "web.apn"
         self.subs_loc_info = struct.pack("!BBBBHH",
@@ -63,14 +63,13 @@ def create_radius_request(config):
         rad.add_avp(libradi.RadiusAvp("NAS-IP-Address", config.radius_dest))
 
     if is_ipv6(config.framed_ip):
-        # TODO: implement ipv6 prefix type
-        #
-        #rad.add_avp(libradi.RadiusAvp("Framed-IPv6-Prefix", ContainerType(
-        #        ByteType(0),
-        #        ByteType(config.framed_mask),
-        #        AddressType(config.framed_ip, True))))
-        pass
+        if not config.framed_mask:
+            config.framed_mask = 128
+        rad.add_avp(libradi.RadiusAvp("Framed-IPv6-Prefix",
+            "{}/{}".format(config.framed_ip, config.framed_mask)))
     else:
+        if not config.framed_mask:
+            config.framed_mask = 32
         rad.add_avp(libradi.RadiusAvp("Framed-IP-Address", config.framed_ip))
         rad.add_avp(libradi.RadiusAvp("Framed-IP-Netmask",
             libradi.radtypes.bits_to_ip4mask(config.framed_mask)))
