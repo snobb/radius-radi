@@ -190,6 +190,17 @@ class ByteType(NumericBaseType):
         self.pattern = "B"
 
 
+class DateType(NumericBaseType):
+    def __init__(self, value, length=1):
+        """length is set in 1byte chunks. eg. length = 4 == 4bytes"""
+        self.value = int(float(value))
+        self.length = 1
+        if not 0 <= self.value < 4294967295:
+            raise ValueError("Invalid date format - expected unix time stamp")
+        self.byte_length = 4
+        self.pattern = "L"
+
+
 class ContainerType(object):
     """Container type allowing to join several values together"""
     def __init__(self, *args):
@@ -214,7 +225,7 @@ _types = {
     "ipv6addr"  : AddressType,
     "ipv6prefix": AddressIPv6PrefixType,
     "ether"     : None,
-    "date"      : None,
+    "date"      : DateType,
     "integer"   : IntegerType,
     "signed"    : IntegerType,
     "short"     : ShortType,
@@ -246,5 +257,10 @@ def get_type_instance(type_name, *args, **kwargs):
     if not obj:
         raise ValueError("The type is not defined: {}".format(type_name))
     return obj(*args, **kwargs)
+
+def get_supported_types():
+    """return a list of supported types (string names)"""
+    return [radtype for radtype in iter(_types) if _types[radtype]]
+
 
 # vim: ts=4 sts=4 sw=4 tw=80 ai smarttab et fo=rtcq list

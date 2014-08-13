@@ -16,6 +16,17 @@ class RadTypesTest(unittest.TestCase):
     def tearDown(self):
         pass
 
+    def test_get_supported_types(self):
+        types = libradi.radtypes.get_supported_types()
+        self.assertIsNotNone(types)
+        self.assertEquals(list, type(types))
+        self.assertIn("integer", types)
+        self.assertIn("date", types)
+        self.assertIn("byte", types)
+        self.assertNotIn("tlv", types)
+        self.assertNotIn("ether", types)
+
+
     def test_byte_type(self):
         byte = libradi.radtypes.get_type_instance("byte", 125)
         self.assertIsNotNone(byte)
@@ -121,5 +132,12 @@ class RadTypesTest(unittest.TestCase):
         self.assertEquals("helloworld", addr.value)
         self.assertEquals(len("helloworld"), len(addr))
         self.assertEquals("helloworld", addr.dump())
+
+    def test_date_type(self):
+        date = libradi.radtypes.get_type_instance("date", 1407970742.713266747)
+        self.assertIsNotNone(date)
+        self.assertEquals(1407970742, date.value)
+        self.assertEquals(4, len(date))
+        self.assertEquals("53ebedb6", date.dump().encode("hex"));
 
 # vim: ts=4 sts=4 sw=4 tw=80 ai smarttab et fo=rtcq list
