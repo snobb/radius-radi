@@ -23,9 +23,8 @@ class RadTypesTest(unittest.TestCase):
         self.assertIn("integer", types)
         self.assertIn("date", types)
         self.assertIn("byte", types)
+        self.assertIn("ether", types)
         self.assertNotIn("tlv", types)
-        self.assertNotIn("ether", types)
-
 
     def test_byte_type(self):
         byte = libradi.radtypes.get_type_instance("byte", 125)
@@ -63,14 +62,14 @@ class RadTypesTest(unittest.TestCase):
         short = libradi.radtypes.get_type_instance("short", 0x11f)
         self.assertIsNotNone(short)
         self.assertEquals(287, short.value)
-        self.assertEquals("h", short.pattern)
+        self.assertEquals("H", short.pattern)
         self.assertEquals("\x01\x1f", short.dump())
 
     def test_short_type_many(self):
         short = libradi.radtypes.get_type_instance("short", 0x11aa22bb, length=2)
         self.assertIsNotNone(short)
         self.assertEquals(0x11aa22bb, short.value)
-        self.assertEquals("h", short.pattern)
+        self.assertEquals("H", short.pattern)
         self.assertEquals(2, short.length)
         self.assertEquals(4, len(short))
         self.assertEquals("\x11\xaa\x22\xbb", short.dump())
@@ -139,5 +138,13 @@ class RadTypesTest(unittest.TestCase):
         self.assertEquals(1407970742, date.value)
         self.assertEquals(4, len(date))
         self.assertEquals("53ebedb6", date.dump().encode("hex"));
+
+    def test_ether_type(self):
+        ether = libradi.radtypes.get_type_instance("ether", "00:11:22:33:44:55")
+        self.assertIsNotNone(ether)
+        self.assertEquals("00:11:22:33:44:55", ether.value)
+        self.assertEquals(6, len(ether))
+        self.assertEquals("001122334455", ether.dump().encode("hex"));
+
 
 # vim: ts=4 sts=4 sw=4 tw=80 ai smarttab et fo=rtcq list

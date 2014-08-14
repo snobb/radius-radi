@@ -15,7 +15,7 @@ class AbstractType(object):
         self.length = length
 
     def __len__(self):
-        return length if length else len(value)
+        return self.length if self.length else len(value)
 
     def __lt__(self, other):
         if type(self) != type(other):
@@ -48,8 +48,8 @@ class AbstractType(object):
     def __str__(self):
         return str(self.value)
 
-    def __dump__(self):
-        raise NotImplementedError()
+    def dump(self):
+        raise NotImplementedError("dump is not implemented")
 
 
 class AddressType(AbstractType):
@@ -118,15 +118,9 @@ class AddressIPv6PrefixType(AbstractType):
 class TextType(AbstractType):
     """Text data type"""
     def __init__(self, value):
-        super(TextType, self).__init__(str(value))
+        super(TextType, self).__init__(str(value), len(value))
         if not value:
             raise ValueError("Empty strings are not allowed (rfc2866)")
-
-    def __len__(self):
-        return len(self.value)
-
-    def __str__(self):
-        return str(self.value)
 
     def dump(self):
         return struct.pack("!%ss" % len(self.value), self.value)
@@ -166,7 +160,7 @@ class NumericBaseType(AbstractType):
 
 
 class IntegerType(NumericBaseType):
-    """Integer data type"""
+    """Integer data type (4bytes numeric)"""
     def __init__(self, value, length=1):
         """length is set in 4byte chunks. eg. length = 4 == 16bytes"""
         super(IntegerType, self).__init__(value, length)
@@ -175,14 +169,16 @@ class IntegerType(NumericBaseType):
 
 
 class ShortType(NumericBaseType):
+    """Short data type (2byte numeric)"""
     def __init__(self, value, length=1):
         """length is set in 2byte chunks. eg. length = 4 == 8bytes"""
         super(ShortType, self).__init__(value, length)
         self.byte_length = 2
-        self.pattern = "h"
+        self.pattern = "H"
 
 
 class ByteType(NumericBaseType):
+    """Byte data type (1byte numeric)"""
     def __init__(self, value, length=1):
         """length is set in 1byte chunks. eg. length = 4 == 4bytes"""
         super(ByteType, self).__init__(value, length)
@@ -191,14 +187,33 @@ class ByteType(NumericBaseType):
 
 
 class DateType(NumericBaseType):
+    """Date data type (input as a unix time stamps, nanoseconds are
+    truncated"""
     def __init__(self, value, length=1):
         """length is set in 1byte chunks. eg. length = 4 == 4bytes"""
-        self.value = int(float(value))
-        self.length = 1
+        super(DateType, self).__init__(int(float(value)), 1)
         if not 0 <= self.value < 4294967295:
             raise ValueError("Invalid date format - expected unix time stamp")
         self.byte_length = 4
         self.pattern = "L"
+
+
+class EtherType(AbstractType):
+    """Ethernet address data type"""
+    def __init__(self, value):
+        super(EtherType, self).__init__(str(value), 6)
+        if not value:
+            raise ValueError("Empty strings are not allowed (rfc2866)")
+
+        if ":" in value:
+            self.ether_bytes = [int(byte, 16) for byte in value.split(":")]
+            if (len(self.ether_bytes) != 6):
+                raise ValueError("invalid ethernet address format (length)")
+        else:
+            raise ValueError("invalid ethernet address format")
+
+    def dump(self):
+        return struct.pack("!6B", *self.ether_bytes)
 
 
 class ContainerType(object):
@@ -224,7 +239,7 @@ _types = {
     "ipaddr"    : AddressType,
     "ipv6addr"  : AddressType,
     "ipv6prefix": AddressIPv6PrefixType,
-    "ether"     : None,
+    "ether"     : EtherType,
     "date"      : DateType,
     "integer"   : IntegerType,
     "signed"    : IntegerType,
