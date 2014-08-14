@@ -24,7 +24,7 @@ PICKLED_FILE_NAME = "{}/.{}.dat".format(
 class Config(object):
     """config storage object"""
     def __init__(self):
-        self.dict_path = "dict"
+        self.dict_path = "/usr/local/share/libradi/dict"
         self.dict_fname = "dictionary"
         self.radius_dest = "127.0.0.1"
         self.radius_port = 1813

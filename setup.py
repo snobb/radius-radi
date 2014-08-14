@@ -4,6 +4,7 @@
 # Copyright (C) 2013 Alex Kozadaev [akozadaev at yahoo com]
 #
 
+import glob
 from distutils.core import setup
 
 
@@ -22,6 +23,7 @@ setup(
         version="0.05",
         scripts=["radi.py"],
         py_modules=["libradi.dictionary", "libradi.radius", "libradi.radtypes"],
+        data_files=[("share/libradi/dict", glob.glob("dict/dictionary*"))]
         )
 
 

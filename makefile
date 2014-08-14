@@ -1,8 +1,8 @@
 check: test
-	@echo testing project
 
 test:
-	python -m unittest discover tests
+	@echo testing project
+	@python -m unittest discover tests
 
 run:
 	python radi.py
@@ -11,11 +11,17 @@ build:
 	python setup.py build
 
 install: build
-	python setup.py install --record install.log
+	@echo installing
+	python setup.py install -O2 --record install.log
+
+uninstall:
+	@echo uninstalling
+	-test -e install.log && cat install.log | xargs rm || true
 
 clean:
 	-rm -rf .radi.py.dat
 	-rm -rf *.pyc
 	-rm -rf libradi/*.pyc
 	-rm -rf tests/*.pyc
-	-rm -rf build
+	-rm -rf MANIFEST
+	-rm -rf build dist
