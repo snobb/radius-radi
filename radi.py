@@ -10,8 +10,6 @@ import struct
 import pickle
 import libradi
 
-__version__ = "0.05"
-
 # Globals
 __verbose__ = False     # enabling verbose logging
 
@@ -24,7 +22,8 @@ PICKLED_FILE_NAME = "{}/.{}.dat".format(
 class Config(object):
     """config storage object"""
     def __init__(self):
-        self.dict_path = "/usr/local/share/libradi/dict"
+        load_install_path()
+        self.dict_path = os.path.join(INSTALL_PREFIX, "dict")
         self.dict_fname = "dictionary"
         self.radius_dest = "127.0.0.1"
         self.radius_port = 1813
@@ -51,6 +50,16 @@ class Config(object):
     def update(self, config):
         """merge the current object with 'config' dictionary"""
         self.__dict__.update(config)
+
+def load_install_path():
+    global INSTALL_PREFIX
+    try:
+        import libradi.config
+        INSTALL_PREFIX = os.path.join(
+                libradi.config.install_pfx, "share/libradi")
+        del(libradi.config)
+    except ImportError:
+        INSTALL_PREFIX = ""
 
 def is_ipv6(ipaddr):
     return ":" in ipaddr
