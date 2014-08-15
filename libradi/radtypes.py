@@ -144,6 +144,18 @@ class NumericBaseType(AbstractType):
         self.pattern = None     # struct pattern
         self.length = length
 
+    def numbytes(self, value):
+        n = 0
+        while (value > 0):
+            value >>= 8 * self.byte_length;
+            n += 1
+        return n
+
+    def adjust_length(self):
+        actual_length = self.numbytes(self.value)
+        if (actual_length > self.length):
+            self.length = actual_length
+
     def __len__(self):
         return self.length * self.byte_length
 
@@ -166,6 +178,7 @@ class IntegerType(NumericBaseType):
         super(IntegerType, self).__init__(value, length)
         self.byte_length = 4
         self.pattern = "L"
+        self.adjust_length()
 
 
 class ShortType(NumericBaseType):
@@ -175,6 +188,7 @@ class ShortType(NumericBaseType):
         super(ShortType, self).__init__(value, length)
         self.byte_length = 2
         self.pattern = "H"
+        self.adjust_length()
 
 
 class ByteType(NumericBaseType):
@@ -184,6 +198,7 @@ class ByteType(NumericBaseType):
         super(ByteType, self).__init__(value, length)
         self.byte_length = 1
         self.pattern = "B"
+        self.adjust_length()
 
 
 class DateType(NumericBaseType):
@@ -235,7 +250,7 @@ class ContainerType(object):
 
 _types = {
     "string"    : TextType,
-    "octets"    : TextType,
+    "octets"    : ByteType,
     "ipaddr"    : AddressType,
     "ipv6addr"  : AddressType,
     "ipv6prefix": AddressIPv6PrefixType,

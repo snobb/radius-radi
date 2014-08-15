@@ -42,6 +42,15 @@ class RadTypesTest(unittest.TestCase):
         self.assertEquals(4, len(byte))
         self.assertEquals("\x11\xaa\x22\xbb", byte.dump())
 
+    def test_byte_type_multi_nolength(self):
+        byte = libradi.radtypes.get_type_instance("byte", 0x11aa22bb)
+        self.assertIsNotNone(byte)
+        self.assertEquals(0x11aa22bb, byte.value)
+        self.assertEquals("B", byte.pattern)
+        self.assertEquals(4, byte.length)
+        self.assertEquals(4, len(byte))
+        self.assertEquals("\x11\xaa\x22\xbb", byte.dump())
+
     def test_integer_type(self):
         integer = libradi.radtypes.get_type_instance("integer", 0x11f)
         self.assertIsNotNone(integer)
@@ -58,6 +67,15 @@ class RadTypesTest(unittest.TestCase):
         self.assertEquals(8, len(integer))
         self.assertEquals("\x00\x00\x00\x00\x11\xaa\x22\xbb", integer.dump())
 
+    def test_integer_type_many_nolength(self):
+        integer = libradi.radtypes.get_type_instance("integer", 0x11aa22bbccdd)
+        self.assertIsNotNone(integer)
+        self.assertEquals(0x11aa22bbccdd, integer.value)
+        self.assertEquals("L", integer.pattern)
+        self.assertEquals(2, integer.length)
+        self.assertEquals(8, len(integer))
+        self.assertEquals("\x00\x00\x11\xaa\x22\xbb\xcc\xdd", integer.dump())
+
     def test_short_type(self):
         short = libradi.radtypes.get_type_instance("short", 0x11f)
         self.assertIsNotNone(short)
@@ -73,6 +91,15 @@ class RadTypesTest(unittest.TestCase):
         self.assertEquals(2, short.length)
         self.assertEquals(4, len(short))
         self.assertEquals("\x11\xaa\x22\xbb", short.dump())
+
+    def test_short_type_many_nolength(self):
+        short = libradi.radtypes.get_type_instance("short", 0x11aa22bbcc)
+        self.assertIsNotNone(short)
+        self.assertEquals(0x11aa22bbcc, short.value)
+        self.assertEquals("H", short.pattern)
+        self.assertEquals(3, short.length)
+        self.assertEquals(6, len(short))
+        self.assertEquals("\x00\x11\xaa\x22\xbb\xcc", short.dump())
 
     def test_bits_to_ip4mask(self):
         with self.assertRaises(ValueError) as cm:
@@ -145,6 +172,5 @@ class RadTypesTest(unittest.TestCase):
         self.assertEquals("00:11:22:33:44:55", ether.value)
         self.assertEquals(6, len(ether))
         self.assertEquals("001122334455", ether.dump().encode("hex"));
-
 
 # vim: ts=4 sts=4 sw=4 tw=80 ai smarttab et fo=rtcq list

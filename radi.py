@@ -91,7 +91,8 @@ def create_radius_request(config):
     rad.add_avp(libradi.RadiusAvp("Calling-Station-Id", config.calling_id))
     rad.add_avp(libradi.RadiusAvp("Called-Station-Id", config.called_id))
 
-    rad.add_avp(libradi.RadiusAvp("3GPP-Location-Info", config.subs_loc_info))
+    rad.add_avp(libradi.RadiusAvp("3GPP-Location-Info",
+        "0x" + config.subs_loc_info.encode("hex")))
 
     rad.add_avp(libradi.RadiusAvp("3GPP-IMSI", config.imsi))
     rad.add_avp(libradi.RadiusAvp("3GPP-IMEISV", config.imei))
