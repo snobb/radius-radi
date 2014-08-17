@@ -5,11 +5,11 @@ RELEASE v0.05 - radi.py remake that is capable of using freeradius dictionary
       the correct type/value for the given AVP name.
     - most of the functionality was moved to a libradi library, so that
       it will be easy to use the functionality in other projects
-    - all types but tlv are implemented
+    - all types are implemented which makes it possible to use ANY AVPs
+      in the dictionary
     - now the path to the dictionary files can be specified as a CLI
       parameter and the default path can be specified in the config (radi.py)
  
     TODO:
-    - Implement the missing types (eg. tlv)
     - Add unit tests for EVERYTHING
     - polish & refactor
