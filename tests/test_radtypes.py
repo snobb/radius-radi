@@ -24,7 +24,7 @@ class RadTypesTest(unittest.TestCase):
         self.assertIn("date", types)
         self.assertIn("byte", types)
         self.assertIn("ether", types)
-        self.assertNotIn("tlv", types)
+        self.assertIn("tlv", types)
 
     def test_byte_type(self):
         byte = libradi.radtypes.get_type_instance("byte", 125)
@@ -172,5 +172,20 @@ class RadTypesTest(unittest.TestCase):
         self.assertEquals("00:11:22:33:44:55", ether.value)
         self.assertEquals(6, len(ether))
         self.assertEquals("001122334455", ether.dump().encode("hex"));
+
+    def test_tlv_type(self):
+        tlv = libradi.radtypes.get_type_instance("tlv",
+                "0xf5/0x{}".format("hello world".encode("hex")))
+        self.assertIsNotNone(tlv)
+        self.assertEquals(len("hello world") + 2, len(tlv))
+        self.assertEquals(0xb, len(tlv.values[2]))
+        self.assertEquals("f5" + "0b" + "68656c6c6f20776f726c64",
+                tlv.dump().encode("hex"))
+
+        with self.assertRaises(ValueError) as cm:
+            tlv_type = "0x01f5"
+            tlv = libradi.radtypes.get_type_instance("tlv",
+                    "0x{}/0x{}".format(tlv_type,
+                        "hello world".encode("hex")))
 
 # vim: ts=4 sts=4 sw=4 tw=80 ai smarttab et fo=rtcq list

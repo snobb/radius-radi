@@ -248,6 +248,36 @@ class ContainerType(object):
         return bytes(values_binary)
 
 
+class TlvType(AbstractType):
+    def __init__(self, value):
+        try:
+            tlv_type, tlv_value = value.split("/")
+        except ValueError:
+            raise ValueError("invalid TLV value - must be in type/value format")
+
+        tlv_type_bin = get_type_instance("byte", tlv_type)
+        if (len(tlv_type_bin) != 1):
+            raise ValueError("invalid TLV value - lenght of type != 1")
+
+        tlv_value_bin = get_type_instance("byte", tlv_value)
+        self.values = [
+                tlv_type_bin,
+                get_type_instance("byte", len(tlv_value_bin)),
+                tlv_value_bin
+                ]
+
+    def __len__(self):
+        return sum([len(value) for value in self.values])
+
+    def __str__(self):
+        return "".join([str(value) for value in self.values])
+
+    def dump(self):
+        """dump binary representation of the contained values"""
+        values_binary = "".join([value.dump() for value in self.values])
+        return bytes(values_binary)
+
+
 _types = {
     "string"    : TextType,
     "octets"    : ByteType,
@@ -260,7 +290,7 @@ _types = {
     "signed"    : IntegerType,
     "short"     : ShortType,
     "byte"      : ByteType,
-    "tlv"       : None,
+    "tlv"       : TlvType,
     }
 
 

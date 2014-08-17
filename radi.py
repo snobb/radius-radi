@@ -164,6 +164,10 @@ def usage():
         " - The date type should be a unix time stamp (seconds since\n"
         "   1970-01-01 00:00:00 UTC).\n"
         "   Eg. -a event-timestamp=1234567890.123456\n\n"
+        " - TLV type should be formated as follows:\n"
+        "   <type>/<value>\n"
+        "   type - (1 byte - dec or hex)\n"
+        "   value - any number of bytes - dec or hex value\n\n"
         .format(", ".join(libradi.radtypes.get_supported_types())))
 
 def parse_avp(value):
