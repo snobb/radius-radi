@@ -8,7 +8,7 @@ import libradi
 import unittest
 
 
-class AVPTest(unittest.TestCase):
+class DictionaryTest(unittest.TestCase):
     def setUp(self):
         pass
 

@@ -2,7 +2,7 @@ check: test
 
 test:
 	@echo testing project
-	@python -m unittest discover tests
+	@python -c "import tests"
 
 run:
 	python radi.py
