@@ -1,22 +1,38 @@
-check: test
-
-test:
-	@echo testing project
-	@python -c "import tests"
-
-run:
-	python radi.py
+# A make file for python projects with doctest/unittest facilities
+#
+# The directory layout should be as follows:
+# /
+# |\_ tests		-	unittests
+# |\_ doctests  -	doctests (file extension should be .dt)
+# |\_ ... 		-	project code
+# \__ makefile	-	this makefile
+#
+# The make file is also assumes the use of setup.py
+#
+PYTHON = python
+TESTDIR = tests
+DOCTESTS = ${wildcard doctests/*.dt}
 
 build:
-	python setup.py build
+	@${PYTHON} setup.py build
 
 install: build
 	@echo installing
-	python setup.py install -O2 --record install.log
+	@${PYTHON} setup.py install -O2 --record install.log
 
 uninstall:
 	@echo uninstalling
-	-test -e install.log && cat install.log | xargs rm || true
+	@-test -e install.log && cat install.log | tee | xargs rm || true
+
+check: test
+
+test: ${DOCTESTS}
+	@echo "\nrunning unittests:"
+	@${PYTHON} -m unittest discover -s ${TESTDIR}
+
+%.dt: .FORCE
+	@echo "testing $@"
+	@${PYTHON} -m doctest $@
 
 clean:
 	-rm -rf .radi.py.dat
@@ -25,3 +41,5 @@ clean:
 	-rm -rf tests/*.pyc
 	-rm -rf MANIFEST
 	-rm -rf build dist
+
+.PHONY: build install uninstall test check clean .FORCE
