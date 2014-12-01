@@ -115,6 +115,7 @@ class Dictionary(object):
             raise IOError("Cannot read dictionary (IOError)")
 
     def read_dictionary(self, filename, path):
+        """read dictionary files into a single dictionary db"""
         self.read_dictionaries(filename, path)
 
         # adding values to the attributes after processing all the files
@@ -130,10 +131,15 @@ class Dictionary(object):
         self.values = None
 
     def get_attribute(self, name):
+        """get attribute by name"""
         try:
             return self.attributes[name.lower()]
         except KeyError:
             raise ValueError("attribute {} not found".format(name))
+
+    def get_attribute_names(self):
+        """get the list of all known attributes"""
+        return self.attributes.keys();
 
     def __iter__(self):
         return iter(self.attributes)
