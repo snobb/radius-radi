@@ -26,13 +26,19 @@ uninstall:
 
 check: test
 
-test: ${DOCTESTS}
-	@echo "\nrunning unittests:"
+test: .FORCE doctest
+	@echo ":: running unittests:"
 	@${PYTHON} -m unittest discover -s ${TESTDIR}
 
 %.dt: .FORCE
 	@echo "testing $@"
 	@${PYTHON} -m doctest $@
+
+doctest: .FORCE _doctest ${DOCTESTS}
+	@echo
+
+_doctest:
+	@echo ":: running doctests:"
 
 clean:
 	-rm -rf .radi.py.dat
@@ -42,4 +48,4 @@ clean:
 	-rm -rf MANIFEST
 	-rm -rf build dist
 
-.PHONY: build install uninstall test check clean .FORCE
+.PHONY: build install uninstall test doctest check clean .FORCE
