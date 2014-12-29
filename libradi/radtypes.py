@@ -10,7 +10,7 @@ import socket
 
 class AbstractType(object):
     """Abstract Type interface"""
-    def __init__(self, value, length = None):
+    def __init__(self, value, length=None):
         self.value = value
         self.length = length
 
@@ -140,14 +140,14 @@ class NumericBaseType(AbstractType):
 
         assert(type(self.value) == long or type(self.value) == int)
         assert(0 <= self.value)
-        self.byte_length = None # chunk length in bytes
-        self.pattern = None     # struct pattern
+        self.byte_length = None     # chunk length in bytes
+        self.pattern = None         # struct pattern
         self.length = length
 
     def numbytes(self, value):
         n = 0
         while (value > 0):
-            value >>= 8 * self.byte_length;
+            value >>= 8 * self.byte_length
             n += 1
         return n
 
@@ -167,8 +167,8 @@ class NumericBaseType(AbstractType):
         bit_len = self.byte_length * 8
         mask = (1 << bit_len)-1
         values = [self.value >> (n*bit_len) & mask
-                for n in range(self.length-1, -1, -1)]
-        return struct.pack("!{}{}".format(len(values),self.pattern), *values)
+                  for n in range(self.length-1, -1, -1)]
+        return struct.pack("!{}{}".format(len(values), self.pattern), *values)
 
 
 class IntegerType(NumericBaseType):
@@ -253,7 +253,8 @@ class TlvType(AbstractType):
         try:
             tlv_type, tlv_value = value.split("/")
         except ValueError:
-            raise ValueError("invalid TLV value - must be in type/value format")
+            raise ValueError("invalid TLV value - "
+                             "must be in type/value format")
 
         tlv_type_bin = get_type_instance("byte", tlv_type)
         if (len(tlv_type_bin) != 1):
@@ -261,10 +262,10 @@ class TlvType(AbstractType):
 
         tlv_value_bin = get_type_instance("byte", tlv_value)
         self.values = [
-                tlv_type_bin,
-                get_type_instance("byte", len(tlv_value_bin)),
-                tlv_value_bin
-                ]
+            tlv_type_bin,
+            get_type_instance("byte", len(tlv_value_bin)),
+            tlv_value_bin
+        ]
 
     def __len__(self):
         return sum([len(value) for value in self.values])
@@ -279,18 +280,18 @@ class TlvType(AbstractType):
 
 
 _types = {
-    "string"    : TextType,
-    "octets"    : ByteType,
-    "ipaddr"    : AddressType,
-    "ipv6addr"  : AddressType,
-    "ipv6prefix": AddressIPv6PrefixType,
-    "ether"     : EtherType,
-    "date"      : DateType,
-    "integer"   : IntegerType,
-    "signed"    : IntegerType,
-    "short"     : ShortType,
-    "byte"      : ByteType,
-    "tlv"       : TlvType,
+    "string":       TextType,
+    "octets":       ByteType,
+    "ipaddr":       AddressType,
+    "ipv6addr":     AddressType,
+    "ipv6prefix":   AddressIPv6PrefixType,
+    "ether":        EtherType,
+    "date":         DateType,
+    "integer":      IntegerType,
+    "signed":       IntegerType,
+    "short":        ShortType,
+    "byte":         ByteType,
+    "tlv":          TlvType,
     }
 
 
@@ -304,6 +305,7 @@ def bits_to_ip4mask(num_bits):
     else:
         raise ValueError("invalid IPv4 mask specified")
 
+
 def get_type_obj(type_name):
     """Get a type object by name"""
     global _types
@@ -311,12 +313,14 @@ def get_type_obj(type_name):
         return _types[type_name]
     raise NotImplementedError("ERROR: the type is not implemented")
 
+
 def get_type_instance(type_name, *args, **kwargs):
     """Get a type object instance by name"""
     obj = get_type_obj(type_name)
     if not obj:
         raise ValueError("The type is not defined: {}".format(type_name))
     return obj(*args, **kwargs)
+
 
 def get_supported_types():
     """return a list of supported types (string names)"""

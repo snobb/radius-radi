@@ -14,8 +14,8 @@ __dict_file = "dictionary"
 
 class AttributeDef(object):
     def __init__(self, attr_name, attr_id, attr_type,
-            attr_vendor=None, attr_value=None):
-        """Attribute storage object
+                 attr_vendor=None, attr_value=None):
+        """ Attribute storage object
         Attribute contains the following:
         - attribute name
         - attribute code (id)
@@ -23,7 +23,7 @@ class AttributeDef(object):
         - vendor (if any) (dict of Vendor objects)
         - a list of defined values (if any) (list of name, value tuples)"""
         self.attr_name = attr_name
-        self.attr_id = attr_id # attribute code
+        self.attr_id = attr_id  # attribute code
         self.attr_type = attr_type
         self.attr_vendor = attr_vendor
         # list of values defined in the dictionary
@@ -35,7 +35,7 @@ class AttributeDef(object):
 
     def __str__(self):
         content = [("ATTRIBUTE:\tid: {}, name: {}, type: {}"
-                        .format(self.attr_id, self.attr_name, self.attr_type))]
+                    .format(self.attr_id, self.attr_name, self.attr_type))]
         if self.attr_vendor:
             content.append("\t{}".format(self.attr_vendor))
 
@@ -53,7 +53,7 @@ class VendorDef(object):
 
     def __str__(self):
         return ("VENDOR:\tname: {}, id: {}"
-                    .format(self.vendor_name, self.vendor_id))
+                .format(self.vendor_name, self.vendor_id))
 
 
 class Dictionary(object):
@@ -86,7 +86,7 @@ class Dictionary(object):
                 elif record_type == "ATTRIBUTE":
                     attr_id, attr_type = field[2:4]
                     attribute = AttributeDef(record_name, int(attr_id),
-                            attr_type, vendor)
+                                             attr_type, vendor)
                     self.attributes[record_name.lower()] = attribute
                 elif record_type == "VALUE":
                     val_name, val_value = field[2:4]
@@ -94,14 +94,14 @@ class Dictionary(object):
                         (val_name, val_value))
                 elif record_type == "VENDOR":
                     vendor_id = field[2]
-                    self.vendors[record_name.lower()] = VendorDef(record_name,
-                            int(vendor_id))
+                    self.vendors[record_name.lower()] = VendorDef(
+                        record_name, int(vendor_id))
                 elif record_type == "BEGIN-VENDOR":
                     vendor = self.vendors[record_name.lower()]
                 elif record_type == "END-VENDOR":
                     vendor = None
                 else:
-                    pass # ignoring everything we don't know
+                    pass    # ignoring everything we don't know
 
         return includes
 
@@ -124,9 +124,9 @@ class Dictionary(object):
             if attribute:
                 for name, value in values:
                     value_obj = radtypes.get_type_instance(
-                            attribute.attr_type, value)
+                        attribute.attr_type, value)
                     attribute.attr_defined_values.append(
-                            (name, value_obj))
+                        (name, value_obj))
 
         self.values = None
 
@@ -139,7 +139,7 @@ class Dictionary(object):
 
     def get_attribute_names(self):
         """get the list of all known attributes"""
-        return self.attributes.keys();
+        return self.attributes.keys()
 
     def __iter__(self):
         return iter(self.attributes)
@@ -156,12 +156,14 @@ def initialize(dict_path="dict", dict_file="dictionary"):
     __dict_path = dict_path
     __dict_file = dict_file
 
+
 def get_dictionary():
     global __dictionary
     if not __dictionary:
         global __dict_file, __dict_path
         __dictionary = Dictionary(__dict_path, __dict_file)
     return __dictionary
+
 
 def get_attribute(*args, **kwargs):
     return get_dictionary().get_attribute(*args, **kwargs)
@@ -174,4 +176,4 @@ if __name__ == "__main__":
 
     print __dictionary
 
-# vim: ts=3 sts=4 sw=4 tw=80 ai smarttab et fo=rtcq list
+# vim: ts=4 sts=4 sw=4 tw=80 ai smarttab et fo=rtcq list

@@ -40,6 +40,7 @@ import dictionary
 #   |     Type      |    Length     |  String ...
 #   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
+
 class RadiusAvp(object):
     """Radius avp implementations"""
     def __init__(self, avp_name, avp_value, allow_child=True):
@@ -50,15 +51,15 @@ class RadiusAvp(object):
         if (allow_child and vendor):
             self.avp_def = dictionary.get_attribute("vendor-specific")
             self.avp_code = radtypes.get_type_instance("byte",
-                    self.avp_def.attr_id)
+                                                       self.avp_def.attr_id)
             self.avp_value = radtypes.get_type_instance("integer",
-                    vendor.vendor_id)
+                                                        vendor.vendor_id)
             self.avp_subavp.append(RadiusAvp(avp_name, avp_value, False))
         else:
             self.avp_code = radtypes.get_type_instance("byte",
-                    self.avp_def.attr_id)
+                                                       self.avp_def.attr_id)
             self.avp_value = radtypes.get_type_instance(self.avp_def.attr_type,
-                    avp_value)
+                                                        avp_value)
         self.validate_values()
 
     def validate_values(self):
@@ -78,10 +79,10 @@ class RadiusAvp(object):
     def dump(self):
         """dump the binary representation of the AVP"""
         value = [
-                self.avp_code.dump(),
-                radtypes.get_type_instance("byte", len(self)).dump(),
-                self.avp_value.dump()
-                ]
+            self.avp_code.dump(),
+            radtypes.get_type_instance("byte", len(self)).dump(),
+            self.avp_value.dump()
+        ]
 
         if self.has_sub_avps():
             subavps = [subavp.dump() for subavp in self.avp_subavp]
@@ -94,9 +95,10 @@ class RadiusAvp(object):
 
     def __str__(self):
         contents = ["AVP: Type:{}({})  Length:{}  Value:{}".format(
-                self.avp_def.attr_name, self.avp_def.attr_type,
-                len(self),
-                str(self.avp_value))]
+            self.avp_def.attr_name, self.avp_def.attr_type,
+            len(self),
+            str(self.avp_value))
+        ]
         if self.has_sub_avps():
             for subavp in self.avp_subavp:
                 contents.append("  `- {}".format(str(subavp)))
@@ -105,7 +107,7 @@ class RadiusAvp(object):
 
 class RadiusMessage(object):
     # Radius header templates
-    RADIUS_HDR_TMPL="!BBH16s"
+    RADIUS_HDR_TMPL = "!BBH16s"
 
     """Radius Message object"""
     def __init__(self, secret, code=4):
@@ -131,10 +133,10 @@ class RadiusMessage(object):
         if not avps:
             raise ValueError("AVPs contents isn't defined")
         header = struct.pack(RadiusMessage.RADIUS_HDR_TMPL,
-                self.code,
-                self.pid,
-                len(self),
-                bytes(chr(0x00) * 16))
+                             self.code,
+                             self.pid,
+                             len(self),
+                             bytes(chr(0x00) * 16))
         packet = "".join([header, avps, self.secret])
         return hashlib.md5(packet).digest()
 
@@ -144,16 +146,16 @@ class RadiusMessage(object):
         avps = self.get_all_avps_contents()
         auth = self.compute_authenticator(avps)
         header = struct.pack(RadiusMessage.RADIUS_HDR_TMPL,
-                self.code,
-                self.pid,
-                len(self),
-                auth)
+                             self.code,
+                             self.pid,
+                             len(self),
+                             auth)
         return "".join([header, avps])
 
     def send(self, destTuple):
         """send the packet to the network
         dest_tuple should be (dest_ip, dest_port)"""
-        if ":" in destTuple[0]: # is IPv6
+        if ":" in destTuple[0]:     # is IPv6
             sock = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
             sock.setsockopt(socket.IPPROTO_IPV6, socket.IP_MULTICAST_TTL, 20)
         else:
@@ -168,7 +170,7 @@ class RadiusMessage(object):
     def __str__(self):
         auth = self.compute_authenticator(self.get_all_avps_contents())
         header = "REQUEST:  Code:%d  PID:%d  Length:%d  Auth:%s\n" % (
-                self.code, self.pid, len(self), auth.encode("hex"))
+            self.code, self.pid, len(self), auth.encode("hex"))
         avps = "\n".join([" {}".format(str(avp)) for avp in self.avp_list])
         return "".join((header, avps))
 
