@@ -59,7 +59,9 @@ class RadTypesTest(unittest.TestCase):
         self.assertEquals("\x00\x00\x01\x1f", integer.dump())
 
     def test_integer_type_many(self):
-        integer = libradi.radtypes.get_type_instance("integer", 0x11aa22bb, length=2)
+        integer = libradi.radtypes.get_type_instance("integer",
+                                                     0x11aa22bb,
+                                                     length=2)
         self.assertIsNotNone(integer)
         self.assertEquals(0x11aa22bb, integer.value)
         self.assertEquals("L", integer.pattern)
@@ -68,7 +70,8 @@ class RadTypesTest(unittest.TestCase):
         self.assertEquals("\x00\x00\x00\x00\x11\xaa\x22\xbb", integer.dump())
 
     def test_integer_type_many_nolength(self):
-        integer = libradi.radtypes.get_type_instance("integer", 0x11aa22bbccdd)
+        integer = libradi.radtypes.get_type_instance("integer",
+                                                     0x11aa22bbccdd)
         self.assertIsNotNone(integer)
         self.assertEquals(0x11aa22bbccdd, integer.value)
         self.assertEquals("L", integer.pattern)
@@ -84,7 +87,9 @@ class RadTypesTest(unittest.TestCase):
         self.assertEquals("\x01\x1f", short.dump())
 
     def test_short_type_many(self):
-        short = libradi.radtypes.get_type_instance("short", 0x11aa22bb, length=2)
+        short = libradi.radtypes.get_type_instance("short",
+                                                   0x11aa22bb,
+                                                   length=2)
         self.assertIsNotNone(short)
         self.assertEquals(0x11aa22bb, short.value)
         self.assertEquals("H", short.pattern)
@@ -105,11 +110,16 @@ class RadTypesTest(unittest.TestCase):
         with self.assertRaises(ValueError) as cm:
             libradi.radtypes.bits_to_ip4mask(33)
             libradi.radtypes.bits_to_ip4mask(-1)
-        self.assertEquals("255.0.0.0", libradi.radtypes.bits_to_ip4mask(8))
-        self.assertEquals("255.255.0.0", libradi.radtypes.bits_to_ip4mask(16))
-        self.assertEquals("255.255.255.0", libradi.radtypes.bits_to_ip4mask(24))
-        self.assertEquals("255.255.255.255", libradi.radtypes.bits_to_ip4mask(32))
-        self.assertEquals("255.255.248.0", libradi.radtypes.bits_to_ip4mask(21))
+        self.assertEquals("255.0.0.0",
+                          libradi.radtypes.bits_to_ip4mask(8))
+        self.assertEquals("255.255.0.0",
+                          libradi.radtypes.bits_to_ip4mask(16))
+        self.assertEquals("255.255.255.0",
+                          libradi.radtypes.bits_to_ip4mask(24))
+        self.assertEquals("255.255.255.255",
+                          libradi.radtypes.bits_to_ip4mask(32))
+        self.assertEquals("255.255.248.0",
+                          libradi.radtypes.bits_to_ip4mask(21))
 
     def test_address_type_ipv4(self):
         addr = libradi.radtypes.get_type_instance("ipaddr", "10.0.0.1")
@@ -125,32 +135,32 @@ class RadTypesTest(unittest.TestCase):
         self.assertIsNotNone(addr)
         self.assertEquals("2001:abcd::1", addr.value)
         self.assertEquals(("\x20\x01\xab\xcd\x00\x00\x00\x00\x00\x00"
-                "\x00\x00\x00\x00\x00\x01"), addr.bin_ip_string)
+                           "\x00\x00\x00\x00\x00\x01"), addr.bin_ip_string)
         self.assertEquals(16, len(addr))
-        exp_bin = libradi.radtypes.get_type_instance("byte",
-                0x2001abcd000000000000000000000001, 16)
+        exp_bin = libradi.radtypes.get_type_instance(
+            "byte", 0x2001abcd000000000000000000000001, 16)
         self.assertEquals(exp_bin.dump(), addr.dump())
 
     def test_address_type_ipv6_prefix(self):
         ipv6pref = libradi.radtypes.get_type_instance("ipv6prefix",
-                "2001:db4::/24")
+                                                      "2001:db4::/24")
         self.assertIsNotNone(ipv6pref)
         self.assertEquals(24, ipv6pref.mask)
         self.assertEquals("20010db4000000000000000000000000",
-                ipv6pref.bin_ip_string.encode("hex"))
+                          ipv6pref.bin_ip_string.encode("hex"))
         self.assertEquals(18, len(ipv6pref))
         self.assertEquals("001820010db4000000000000000000000000",
-                ipv6pref.dump().encode("hex"))
+                          ipv6pref.dump().encode("hex"))
 
         ipv6pref = libradi.radtypes.get_type_instance("ipv6prefix",
-                "2001:cccc::1")
+                                                      "2001:cccc::1")
         self.assertIsNotNone(ipv6pref)
         self.assertEquals(128, ipv6pref.mask)
         self.assertEquals("2001cccc000000000000000000000001",
-                ipv6pref.bin_ip_string.encode("hex"))
+                          ipv6pref.bin_ip_string.encode("hex"))
         self.assertEquals(18, len(ipv6pref))
         self.assertEquals("00802001cccc000000000000000000000001",
-                ipv6pref.dump().encode("hex"))
+                          ipv6pref.dump().encode("hex"))
 
     def test_text_type(self):
         addr = libradi.radtypes.get_type_instance("string", "helloworld")
@@ -164,28 +174,29 @@ class RadTypesTest(unittest.TestCase):
         self.assertIsNotNone(date)
         self.assertEquals(1407970742, date.value)
         self.assertEquals(4, len(date))
-        self.assertEquals("53ebedb6", date.dump().encode("hex"));
+        self.assertEquals("53ebedb6", date.dump().encode("hex"))
 
     def test_ether_type(self):
-        ether = libradi.radtypes.get_type_instance("ether", "00:11:22:33:44:55")
+        ether = libradi.radtypes.get_type_instance("ether",
+                                                   "00:11:22:33:44:55")
         self.assertIsNotNone(ether)
         self.assertEquals("00:11:22:33:44:55", ether.value)
         self.assertEquals(6, len(ether))
-        self.assertEquals("001122334455", ether.dump().encode("hex"));
+        self.assertEquals("001122334455", ether.dump().encode("hex"))
 
     def test_tlv_type(self):
-        tlv = libradi.radtypes.get_type_instance("tlv",
-                "0xf5/0x{}".format("hello world".encode("hex")))
+        tlv = libradi.radtypes.get_type_instance(
+            "tlv", "0xf5/0x{}".format("hello world".encode("hex")))
         self.assertIsNotNone(tlv)
         self.assertEquals(len("hello world") + 2, len(tlv))
         self.assertEquals(0xb, len(tlv.values[2]))
         self.assertEquals("f5" + "0b" + "68656c6c6f20776f726c64",
-                tlv.dump().encode("hex"))
+                          tlv.dump().encode("hex"))
 
         with self.assertRaises(ValueError) as cm:
             tlv_type = "0x01f5"
-            tlv = libradi.radtypes.get_type_instance("tlv",
-                    "0x{}/0x{}".format(tlv_type,
-                        "hello world".encode("hex")))
+            tlv = libradi.radtypes.get_type_instance(
+                "tlv", "0x{}/0x{}".format(tlv_type,
+                                          "hello world".encode("hex")))
 
 # vim: ts=4 sts=4 sw=4 tw=80 ai smarttab et fo=rtcq list

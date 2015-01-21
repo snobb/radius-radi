@@ -17,7 +17,7 @@ class DictionaryTest(unittest.TestCase):
 
     def test_attributes(self):
         self.assertEquals(454,
-                len(libradi.dictionary.get_dictionary().attributes))
+                          len(libradi.dictionary.get_dictionary().attributes))
 
     def test_values(self):
         """NAS-Port-Type values are defined in several files.
@@ -46,27 +46,24 @@ class DictionaryTest(unittest.TestCase):
         values = attr.attr_defined_values
         # values are all strings and that is by design.
         # the convertion is to be done by the Type objects
-        exp_values = set([
-                ("Administrator", 0), ("Resource-Admin", 20),
-                ("User-Manager", 40), ("Manager", 100),
-                ("App-Editor", 300), ("Operator", 400),
-                ("Guest", 700), ("Policy-Editor", 800),
-                ("No-Access", 900)
-                ])
+        exp_values = set([("Administrator", 0), ("Resource-Admin", 20),
+                          ("User-Manager", 40), ("Manager", 100),
+                          ("App-Editor", 300), ("Operator", 400),
+                          ("Guest", 700), ("Policy-Editor", 800),
+                          ("No-Access", 900)])
         values = [(name, val.value) for name, val in iter(values)]
         self.assertEquals(exp_values, set(values))
 
     def test_str(self):
         attr = libradi.dictionary.get_attribute("framed-ip-address")
         self.assertIsNotNone(attr)
-        exp_str = ("ATTRIBUTE:\tid: 8, name: Framed-IP-Address, "
-                "type: ipaddr")
+        exp_str = ("ATTRIBUTE:\tid: 8, name: Framed-IP-Address, type: ipaddr")
         self.assertEquals(exp_str, str(attr))
 
         attr = libradi.dictionary.get_attribute("3gpp-ggsn-address")
         self.assertIsNotNone(attr)
         exp_str = ("ATTRIBUTE:\tid: 7, name: 3GPP-GGSN-Address, type: "
-                "ipaddr\n\tVENDOR:\tname: 3GPP, id: 10415")
+                   "ipaddr\n\tVENDOR:\tname: 3GPP, id: 10415")
         self.assertEquals(exp_str, str(attr))
 
 # vim: ts=4 sts=4 sw=4 tw=80 ai smarttab et fo=rtcq list
