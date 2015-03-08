@@ -159,7 +159,7 @@ def usage():
           "                        3GPP calling id\n"
           "  -C CALLED_ID, --called-id CALLED_ID\n"
           "                        3GPP called id\n"
-          "  -a, --avp NAME=VALUE  add an avp (can be repeted "
+          "  -a, --avp NAME=VALUE  add an avp (can be repeated "
           "multiple times)\n"
           "  -D, --delay DELAY     the delay between stopping and starting\n"
           "                        the session in the restart mode "
