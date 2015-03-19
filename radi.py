@@ -151,6 +151,7 @@ def usage():
           "  -T, --stop            stop session\n"
           "  -I, --interim         send interim update\n"
           "  -R, --restart         restart session\n"
+          "  -u, --username        username\n"
           "  -i IMSI, --imsi IMSI  subscriber imsi\n"
           "  -t IMEI, --imei IMEI  subscriber imei\n"
           "  -f FRAMED_IP, --framed-ip FRAMED_IP\n"
@@ -200,7 +201,7 @@ def parse_args():
     config["name"] = sys.argv.pop(0)
     try:
         opt_list, arg_list = getopt.getopt(sys.argv,
-                                           "hd:p:STIRi:t:f:c:C:a:D:LP:v",
+                                           "hd:u:p:STIRi:t:f:c:C:a:D:LP:v",
                                            [
                                                "help", "destination", "secret",
                                                "start", "stop", "interim",
@@ -220,6 +221,8 @@ def parse_args():
             sys.exit(0)
         elif opt in ("-d", "--destination"):
             config["radius_dest"] = value
+        elif opt in ("-u", "--username"):
+            config["username"] = value
         elif opt in ("-p", "--secret"):
             config["radius_secret"] = value
         elif opt in ("-S", "--start"):
