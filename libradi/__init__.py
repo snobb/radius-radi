@@ -8,7 +8,7 @@ from radius import *
 import radtypes
 import dictionary
 
-__version__ = "0.05"
+__version__ = "0.06"
 __author__ = "Alex Kozadaev"
 __author_email__ = "akozadaev at f5.com"
 __license__ = \
