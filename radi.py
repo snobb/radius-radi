@@ -203,12 +203,12 @@ def parse_args():
         opt_list, arg_list = getopt.getopt(sys.argv,
                                            "hd:u:p:STIRi:t:f:c:C:a:D:LP:v",
                                            [
-                                               "help", "destination", "secret",
-                                               "start", "stop", "interim",
-                                               "restart", "id", "id-type",
-                                               "framed-ip", "calling-id",
-                                               "called_id", "avp", "delay",
-                                               "clean", "path", "verbose"
+                                               "help", "destination=", "user=",
+                                               "secret=", "start", "stop", "interim",
+                                               "restart", "imsi=", "imei=",
+                                               "framed-ip=", "calling-id=",
+                                               "called_id=", "avp=", "delay=",
+                                               "clean", "path=", "verbose"
                                            ])
     except getopt.GetoptError as err:
         usage()
