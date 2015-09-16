@@ -13,6 +13,8 @@ PYTHON = python
 TESTDIR = tests
 DOCTESTS = ${wildcard doctests/*.dt}
 
+all: setup_hooks
+
 build:
 	@${PYTHON} setup.py build
 
@@ -23,6 +25,19 @@ install: build
 uninstall:
 	@echo uninstalling
 	@-test -e install.log && cat install.log | tee | xargs rm || true
+
+setup_hooks:
+	@-test -f .git/hooks/post-commit || exit 0
+	@-echo 'REVCNT=$$(git rev-list --count master 2>/dev/null)'   >  .git/hooks/post-commit
+	@-echo 'REVHASH=$$(git log -1 --format="%h" 2>/dev/null)'     >> .git/hooks/post-commit
+	@-echo 'if [[ -z $REVCNT ]]; then VERSION="devel"'            >> .git/hooks/post-commit
+	@-echo 'else VERSION="$${REVCNT}.$${REVHASH}"; fi'            >> .git/hooks/post-commit
+	@-echo 'echo "__version__ = \"v$${VERSION}\"" > version.py'   >> .git/hooks/post-commit
+	@-echo 'echo "Generating a version file... done"'             >> .git/hooks/post-commit
+	@-chmod +x .git/hooks/post-commit
+	@-cp .git/hooks/post-commit .git/hooks/post-merge
+	@-cp .git/hooks/post-commit .git/hooks/post-checkout
+	@-/bin/sh .git/hooks/post-checkout
 
 check: test
 
@@ -48,4 +63,11 @@ clean:
 	-rm -rf MANIFEST
 	-rm -rf build dist
 
+clean_hooks:
+	-rm -f .git/hooks/post-checkout
+	-rm -f .git/hooks/post-commit
+	-rm -f .git/hooks/post-merge
+
 .PHONY: build install uninstall test doctest check clean .FORCE
+
+.NOTPARALLEL: setup_hooks

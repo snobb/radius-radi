@@ -4,6 +4,7 @@
 # Author: Aleksei Kozadaev (2013)
 #
 
+from version import __version__
 import sys
 import getopt
 import os.path
@@ -135,7 +136,7 @@ def restart_session(config):
 
 
 def usage():
-    print("Radius accounting session management tool\n\n"
+    print("Radius accounting session management tool {}\n\n"
           "usage: radi.py [-h] [-d RADIUS_DEST] [-p RADIUS_SECRET]"
           " [-S | -T | -R]\n"
           "               [-i SUBS_ID] [-t {{imsi,imei}}] [-f FRAMED_IP]"
@@ -181,7 +182,7 @@ def usage():
           "   <type>/<value>\n"
           "   type - (1 byte - dec or hex)\n"
           "   value - any number of bytes - dec or hex value\n\n"
-          .format(", ".join(libradi.radtypes.get_supported_types())))
+          .format(__version__, ", ".join(libradi.radtypes.get_supported_types())))
 
 
 def parse_avp(value):
