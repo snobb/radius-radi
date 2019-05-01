@@ -173,5 +173,3 @@ class RadiusMessage(object):
             self.code, self.pid, len(self), auth.encode("hex"))
         avps = "\n".join([" {}".format(str(avp)) for avp in self.avp_list])
         return "".join((header, avps))
-
-# vim: ts=4 sts=4 sw=4 tw=80 ai smarttab et fo=rtcq list

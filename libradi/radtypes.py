@@ -15,7 +15,7 @@ class AbstractType(object):
         self.length = length
 
     def __len__(self):
-        return self.length if self.length else len(value)
+        return self.length if self.length else len(self.value)
 
     def __lt__(self, other):
         if type(self) != type(other):
@@ -111,7 +111,6 @@ class AddressIPv6PrefixType(AbstractType):
         return len(self.bin_ip_string)+2
 
     def dump(self):
-        short = ShortType(self.mask)
         return "".join((ShortType(self.mask).dump(), self.bin_ip_string))
 
 
@@ -325,6 +324,3 @@ def get_type_instance(type_name, *args, **kwargs):
 def get_supported_types():
     """return a list of supported types (string names)"""
     return [radtype for radtype in iter(_types) if _types[radtype]]
-
-
-# vim: ts=4 sts=4 sw=4 tw=80 ai smarttab et fo=rtcq list

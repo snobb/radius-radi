@@ -111,7 +111,7 @@ class Dictionary(object):
         try:
             for fname in self.read_one_file(full_name):
                 self.read_dictionaries(fname, path)
-        except IOError as e:
+        except IOError:
             raise IOError("Cannot read dictionary (IOError)")
 
     def read_dictionary(self, filename, path):
@@ -168,6 +168,7 @@ def get_dictionary():
 def get_attribute(*args, **kwargs):
     return get_dictionary().get_attribute(*args, **kwargs)
 
+
 if __name__ == "__main__":
     try:
         get_attribute("test")
@@ -175,5 +176,3 @@ if __name__ == "__main__":
         pass
 
     print __dictionary
-
-# vim: ts=4 sts=4 sw=4 tw=80 ai smarttab et fo=rtcq list

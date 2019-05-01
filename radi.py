@@ -70,11 +70,11 @@ def is_ipv6(ipaddr):
     return ":" in ipaddr
 
 
-def create_radius_request(config):
+def create_radius_request(config, action):
     """generate a binary version of the packet based on the current config"""
     rad = libradi.RadiusMessage(config.radius_secret)
     rad.add_avp(libradi.RadiusAvp("User-Name", config.username))
-    rad.add_avp(libradi.RadiusAvp("Acct-Status-Type", config.action))
+    rad.add_avp(libradi.RadiusAvp("Acct-Status-Type", action))
 
     if is_ipv6(config.radius_dest):
         rad.add_avp(libradi.RadiusAvp("NAS-IPv6-Address", config.radius_dest))
@@ -115,9 +115,9 @@ def create_radius_request(config):
     return rad
 
 
-def start_stop_session(config):
+def change_session(conifg, action):
     """send start/stop session based on action in the config"""
-    create_radius_request(config).send(
+    create_radius_request(config, action).send(
         (config.radius_dest, config.radius_port))
 
 
@@ -128,11 +128,9 @@ def restart_session(config):
     3. start the new session with the given config
     """
     import time
-    config.action = STOP
-    start_stop_session(config)
+    change_session(config, STOP)
     time.sleep(float(config.delay))
-    config.action = START
-    start_stop_session(config)
+    change_session(config, START)
 
 
 def usage():
@@ -182,7 +180,8 @@ def usage():
           "   <type>/<value>\n"
           "   type - (1 byte - dec or hex)\n"
           "   value - any number of bytes - dec or hex value\n\n"
-          .format(__version__, ", ".join(libradi.radtypes.get_supported_types())))
+          .format(__version__,
+                  ",".join(libradi.radtypes.get_supported_types())))
 
 
 def parse_avp(value):
@@ -205,11 +204,12 @@ def parse_args():
                                            "hd:u:p:STIRi:t:f:c:C:a:D:LP:v",
                                            [
                                                "help", "destination=", "user=",
-                                               "secret=", "start", "stop", "interim",
-                                               "restart", "imsi=", "imei=",
-                                               "framed-ip=", "calling-id=",
-                                               "called_id=", "avp=", "delay=",
-                                               "clean", "path=", "verbose"
+                                               "secret=", "start", "stop",
+                                               "interim", "restart", "imsi=",
+                                               "imei=", "framed-ip=",
+                                               "calling-id=", "called_id=",
+                                               "avp=", "delay=", "clean",
+                                               "path=", "verbose"
                                            ])
     except getopt.GetoptError as err:
         usage()
@@ -294,12 +294,13 @@ def main(config):
     if config.action == RESTART:
         restart_session(config)
     else:
-        start_stop_session(config)
+        change_session(config, config.action)
 
     # pickling the current configuration for future reuse
     debug("Caching the current config for future use")
     with open(PICKLED_FILE_NAME, "w") as f:
         pickle.dump(config, f)
+
 
 if __name__ == "__main__":
     config = Config()
@@ -313,5 +314,3 @@ if __name__ == "__main__":
         print "ERROR: {}".format(e.message)
     except (NotImplementedError) as e:
         print "Not Implemented: {}".format(e.message)
-
-# vim: ts=4 sts=4 sw=4 tw=80 ai smarttab et fo=rtcq list
