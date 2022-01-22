@@ -4,26 +4,27 @@
 # Author: Aleksei Kozadaev (2013)
 #
 
-from version import __version__
 import sys
 import getopt
 import os.path
 import struct
 import pickle
+
 import libradi
+from version import __version__
 
 # Globals
-__verbose__ = False     # enabling verbose logging
+__verbose__ = False  # enabling verbose logging
 
 # Constants
-RESTART, START, STOP, INTERIM = range(4)     # also ACCT_STATUS_TYPE start/stop
+RESTART, START, STOP, INTERIM = range(4)  # also ACCT_STATUS_TYPE start/stop
 FRAMED_PROTO_PPP = 1
-PICKLED_FILE_NAME = "{}/.{}.dat".format(os.path.curdir,
-                                        os.path.basename(__file__))
+PICKLED_FILE_NAME = f"{os.path.curdir}/.{os.path.basename(__file__)}.dat"
 
 
-class Config(object):
+class Config:
     """config storage object"""
+
     def __init__(self):
         load_install_path()
         self.dict_path = os.path.join(INSTALL_PREFIX, "dict")
@@ -38,13 +39,14 @@ class Config(object):
         self.framed_mask = None
         self.calling_id = "00441234987654"
         self.called_id = "web.apn"
-        self.subs_loc_info = struct.pack("!BBBBHH",
-                                         1,  # Location Type (SAI (1))
-                                         0x62,  # 2 octets MCC (Germany (262))
-                                         0x02,  # 1 octet MCC / 1 MNC
-                                         0x10,  # 2 octets MNC (T-Mobile (10))
-                                         0xffff,  # LAC
-                                         0xffff)  # CI
+        self.subs_loc_info = struct.pack(
+            "!BBBBHH",
+            1,  # Location Type (SAI (1))
+            0x62,  # 2 octets MCC (Germany (262))
+            0x02,  # 1 octet MCC / 1 MNC
+            0x10,  # 2 octets MNC (T-Mobile (10))
+            0xffff,  # LAC
+            0xffff)  # CI
         self.delay = 1
         self.action = START
 
@@ -59,9 +61,9 @@ def load_install_path():
     global INSTALL_PREFIX
     try:
         import libradi.config
-        INSTALL_PREFIX = os.path.join(
-            libradi.config.install_pfx, "share/libradi")
-        del(libradi.config)
+        INSTALL_PREFIX = os.path.join(libradi.config.install_pfx,
+                                      "share/libradi")
+        del libradi.config
     except ImportError:
         INSTALL_PREFIX = ""
 
@@ -84,25 +86,25 @@ def create_radius_request(config, action):
     if is_ipv6(config.framed_ip):
         if not config.framed_mask:
             config.framed_mask = 128
-        rad.add_avp(libradi.RadiusAvp("Framed-IPv6-Prefix",
-                                      "{}/{}".format(
-                                          config.framed_ip,
-                                          config.framed_mask
-                                      )))
+        rad.add_avp(
+            libradi.RadiusAvp("Framed-IPv6-Prefix",
+                              f"{config.framed_ip}/{config.framed_mask}"))
     else:
         if not config.framed_mask:
             config.framed_mask = 32
         rad.add_avp(libradi.RadiusAvp("Framed-IP-Address", config.framed_ip))
-        rad.add_avp(libradi.RadiusAvp("Framed-IP-Netmask",
-                                      libradi.radtypes.bits_to_ip4mask(
-                                          config.framed_mask)))
+        rad.add_avp(
+            libradi.RadiusAvp(
+                "Framed-IP-Netmask",
+                libradi.radtypes.bits_to_ip4mask(config.framed_mask)))
 
     rad.add_avp(libradi.RadiusAvp("Framed-Protocol", FRAMED_PROTO_PPP))
     rad.add_avp(libradi.RadiusAvp("Calling-Station-Id", config.calling_id))
     rad.add_avp(libradi.RadiusAvp("Called-Station-Id", config.called_id))
 
-    rad.add_avp(libradi.RadiusAvp("3GPP-Location-Info",
-                                  "0x" + config.subs_loc_info.encode("hex")))
+    rad.add_avp(
+        libradi.RadiusAvp("3GPP-Location-Info",
+                          "0x" + config.subs_loc_info.hex()))
 
     rad.add_avp(libradi.RadiusAvp("3GPP-IMSI", config.imsi))
     rad.add_avp(libradi.RadiusAvp("3GPP-IMEISV", config.imei))
@@ -110,7 +112,7 @@ def create_radius_request(config, action):
     for name, value in config.avps:
         rad.add_avp(libradi.RadiusAvp(name, value))
 
-    debug(str(rad))
+    # debug(str(rad))
 
     return rad
 
@@ -179,9 +181,8 @@ def usage():
           " - TLV type should be formated as follows:\n"
           "   <type>/<value>\n"
           "   type - (1 byte - dec or hex)\n"
-          "   value - any number of bytes - dec or hex value\n\n"
-          .format(__version__,
-                  ",".join(libradi.radtypes.get_supported_types())))
+          "   value - any number of bytes - dec or hex value\n\n".format(
+              __version__, ",".join(libradi.radtypes.get_supported_types())))
 
 
 def parse_avp(value):
@@ -190,7 +191,7 @@ def parse_avp(value):
         name, value = value.split("=")
     except ValueError:
         raise ValueError("invalid avp format")
-    assert(name is not None and value is not None)
+    assert (name is not None and value is not None)
     return (name, value)
 
 
@@ -200,20 +201,16 @@ def parse_args():
     config = dict()
     config["name"] = sys.argv.pop(0)
     try:
-        opt_list, arg_list = getopt.getopt(sys.argv,
-                                           "hd:u:p:STIRi:t:f:c:C:a:D:LP:v",
-                                           [
-                                               "help", "destination=", "user=",
-                                               "secret=", "start", "stop",
-                                               "interim", "restart", "imsi=",
-                                               "imei=", "framed-ip=",
-                                               "calling-id=", "called_id=",
-                                               "avp=", "delay=", "clean",
-                                               "path=", "verbose"
-                                           ])
+        opt_list, arg_list = getopt.getopt(
+            sys.argv, "hd:u:p:STIRi:t:f:c:C:a:D:LP:v", [
+                "help", "destination=", "user=", "secret=", "start", "stop",
+                "interim", "restart", "imsi=", "imei=", "framed-ip=",
+                "calling-id=", "called_id=", "avp=", "delay=", "clean",
+                "path=", "verbose"
+            ])
     except getopt.GetoptError as err:
         usage()
-        print "\n%s" % str(err)
+        print(f"\n{str(err)}")
         sys.exit(2)
 
     for opt, value in opt_list:
@@ -266,7 +263,7 @@ def debug(message, force=False):
     """debug output - printed only if the verbose config option is set"""
     global __verbose__
     if __verbose__ or force:
-        print message
+        print(message)
 
 
 def main(config):
@@ -276,7 +273,7 @@ def main(config):
     # try loading the pickled configuration
     if "cleancache" not in args:
         try:
-            with open(PICKLED_FILE_NAME, "r") as f:
+            with open(PICKLED_FILE_NAME, "rb") as f:
                 cache = pickle.load(f)
             if "verbose" in args:
                 debug("Cache found. Loading...", force=True)
@@ -284,12 +281,11 @@ def main(config):
         except IOError:
             cache = None
 
-    config.update(args)     # merging configuration
+    config.update(args)  # merging configuration
     action_strings = ["Restarting", "Starting", "Stoping", "Updating"]
 
     debug("%s the session" % action_strings[config.action])
-    libradi.dictionary.initialize(config.dict_path,
-                                  config.dict_fname)
+    libradi.dictionary.initialize(config.dict_path, config.dict_fname)
 
     if config.action == RESTART:
         restart_session(config)
@@ -298,7 +294,7 @@ def main(config):
 
     # pickling the current configuration for future reuse
     debug("Caching the current config for future use")
-    with open(PICKLED_FILE_NAME, "w") as f:
+    with open(PICKLED_FILE_NAME, "wb") as f:
         pickle.dump(config, f)
 
 
@@ -306,11 +302,11 @@ if __name__ == "__main__":
     config = Config()
 
     try:
-        main(config)        # main logic
+        main(config)  # main logic
     except (KeyboardInterrupt):
-        print "Interrupted... Exiting"
+        print("Interrupted... Exiting")
         sys.exit(1)
     except (ValueError, IOError) as e:
-        print "ERROR: {}".format(e.message)
+        print(f"ERROR: {e.message}")
     except (NotImplementedError) as e:
-        print "Not Implemented: {}".format(e.message)
+        print(f"Not Implemented: {e.message}")

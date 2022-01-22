@@ -4,9 +4,14 @@
 # Author: Alex Kozadaev (2014)
 #
 
-from radius import *
+import sys
+
+sys.path.append("libradi")
+
 import radtypes
 import dictionary
+
+from radius import *
 
 __version__ = "0.06"
 __author__ = "Alex Kozadaev"

@@ -12,9 +12,9 @@ __dict_path = "dict"
 __dict_file = "dictionary"
 
 
-class AttributeDef(object):
-    def __init__(self, attr_name, attr_id, attr_type,
-                 attr_vendor=None, attr_value=None):
+class AttributeDef:
+
+    def __init__(self, attr_name, attr_id, attr_type, attr_vendor=None):
         """ Attribute storage object
         Attribute contains the following:
         - attribute name
@@ -34,34 +34,37 @@ class AttributeDef(object):
         return len(self.attr_defined_values) > 0
 
     def __str__(self):
-        content = [("ATTRIBUTE:\tid: {}, name: {}, type: {}"
-                    .format(self.attr_id, self.attr_name, self.attr_type))]
+        content = [
+            f"ATTRIBUTE:\tid: {self.attr_id}, "
+            f"name: {self.attr_name}, "
+            f"type: {self.attr_type}"
+        ]
         if self.attr_vendor:
-            content.append("\t{}".format(self.attr_vendor))
+            content.append(f"\t{self.attr_vendor}")
 
         for name, value in iter(self.attr_defined_values):
-            content.append("\tVALUE:\tname {}, value: {}".format(
-                name, value))
+            content.append(f"\tVALUE:\tname {name}, value: {value}")
         return "\n".join(content)
 
 
-class VendorDef(object):
+class VendorDef:
+
     def __init__(self, vendor_name, vendor_id):
         """Vendor storage object"""
         self.vendor_name = vendor_name
         self.vendor_id = vendor_id
 
     def __str__(self):
-        return ("VENDOR:\tname: {}, id: {}"
-                .format(self.vendor_name, self.vendor_id))
+        return f"VENDOR:\tname: {self.vendor_name}, id: {self.vendor_id}"
 
 
-class Dictionary(object):
+class Dictionary:
     """data structure is as follows:
         attributes = { name : Attribute object instance }
         Attribute should know the value id can have and its vendor.
         NOTE: the values are stored as corresponding radtypes values
     """
+
     def __init__(self, dict_path="dict", dict_file="dictionary"):
         self.dict_path = dict_path
         self.dict_file = dict_file
@@ -101,7 +104,7 @@ class Dictionary(object):
                 elif record_type == "END-VENDOR":
                     vendor = None
                 else:
-                    pass    # ignoring everything we don't know
+                    pass  # ignoring everything we don't know
 
         return includes
 
@@ -119,14 +122,13 @@ class Dictionary(object):
         self.read_dictionaries(filename, path)
 
         # adding values to the attributes after processing all the files
-        for attr_name, values in self.values.iteritems():
+        for attr_name, values in self.values.items():
             attribute = self.attributes[attr_name]
             if attribute:
                 for name, value in values:
                     value_obj = radtypes.get_type_instance(
                         attribute.attr_type, value)
-                    attribute.attr_defined_values.append(
-                        (name, value_obj))
+                    attribute.attr_defined_values.append((name, value_obj))
 
         self.values = None
 
@@ -135,7 +137,7 @@ class Dictionary(object):
         try:
             return self.attributes[name.lower()]
         except KeyError:
-            raise ValueError("attribute {} not found".format(name))
+            raise ValueError(f"attribute {name} not found")
 
     def get_attribute_names(self):
         """get the list of all known attributes"""
@@ -146,7 +148,7 @@ class Dictionary(object):
 
     def __str__(self):
         contents = []
-        for attr in self.attributes.itervalues():
+        for attr in self.attributes.values():
             contents.append(str(attr))
         return "\n".join(contents)
 
@@ -175,4 +177,4 @@ if __name__ == "__main__":
     except ValueError:
         pass
 
-    print __dictionary
+    print(__dictionary)

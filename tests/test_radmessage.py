@@ -9,44 +9,45 @@ import unittest
 
 
 class RadiusMessageTest(unittest.TestCase):
+
     def setUp(self):
         self.request = libradi.RadiusMessage("secret")
         self.assertIsNotNone(self.request)
 
     def tearDown(self):
-        del(self.request)
+        del (self.request)
 
     def test_request_create(self):
         self.assertIsNotNone(self.request)
-        self.assertEquals("secret", self.request.secret)
+        self.assertEqual("secret", self.request.secret)
 
     def test_add_avp(self):
         req_length = self.request.length
         avp = libradi.RadiusAvp("called-station-id", "1234567890")
         self.assertIsNotNone(avp)
-        self.assertEquals(0, len(self.request.avp_list))
+        self.assertEqual(0, len(self.request.avp_list))
         self.request.add_avp(avp)
-        self.assertEquals(req_length + len(avp), len(self.request))
+        self.assertEqual(req_length + len(avp), len(self.request))
         req_length = len(self.request)
-        self.assertEquals(1, len(self.request.avp_list))
+        self.assertEqual(1, len(self.request.avp_list))
 
         avp = libradi.RadiusAvp("framed-ip-address", "10.0.0.1")
         self.assertIsNotNone(avp)
         self.request.add_avp(avp)
-        self.assertEquals(req_length + len(avp), len(self.request))
-        self.assertEquals(2, len(self.request.avp_list))
+        self.assertEqual(req_length + len(avp), len(self.request))
+        self.assertEqual(2, len(self.request.avp_list))
 
     def test_get_all_avp_content(self):
         avp1 = libradi.RadiusAvp("called-station-id", "1234567890")
         self.assertIsNotNone(avp1)
         self.request.add_avp(avp1)
-        self.assertEquals(avp1.dump(), self.request.get_all_avps_contents())
+        self.assertEqual(avp1.dump(), self.request.get_all_avps_contents())
 
         avp2 = libradi.RadiusAvp("framed-ip-address", "10.0.0.1")
         self.assertIsNotNone(avp2)
         self.request.add_avp(avp2)
-        self.assertEquals("".join((avp1.dump(), avp2.dump())),
-                          self.request.get_all_avps_contents())
+        self.assertEqual(b"".join((avp1.dump(), avp2.dump())),
+                         self.request.get_all_avps_contents())
 
     def test_authenticator(self):
         username = libradi.RadiusAvp("user-name", "johndoe")
@@ -72,9 +73,8 @@ class RadiusMessageTest(unittest.TestCase):
         avps = self.request.get_all_avps_contents()
         # the result is recieved from a tcpdump from a packet created
         # with radtool package.
-        self.assertEquals(
-            "cf00f8a8355d79ff820361f2567a9e95",
-            self.request.compute_authenticator(avps).encode("hex"))
+        self.assertEqual("cf00f8a8355d79ff820361f2567a9e95",
+                         self.request.compute_authenticator(avps).hex())
 
     def test_dump(self):
         username = libradi.RadiusAvp("user-name", "johndoe")
@@ -104,23 +104,18 @@ class RadiusMessageTest(unittest.TestCase):
             "00000011f1030303434313233343938373635341e097765622e61706e1a"
             "16000028af011031323334353637383930313233341a24000028af141e3"
             "3343536373839303132333435363738393031323334353637383930")
-        self.assertEquals(exp_message, self.request.dump().encode("hex"))
+        self.assertEqual(exp_message, self.request.dump().hex())
 
     def test_request_string(self):
         username = libradi.RadiusAvp("user-name", "johndoe")
         status = libradi.RadiusAvp("acct-status-type", 1)
         self.request.add_avp(username)
         self.request.add_avp(status)
-        self.assertEquals(2, len(self.request.avp_list))
+        self.assertEqual(2, len(self.request.avp_list))
         avps = self.request.get_all_avps_contents()
         exp_str = ("REQUEST:  Code:{}  PID:{}  Length:{}  Auth:{}"
                    "\n {}\n {}").format(
-                       self.request.code,
-                       self.request.pid,
-                       len(self.request),
-                       self.request.compute_authenticator(avps).encode("hex"),
-                       self.request.avp_list[0],
-                       self.request.avp_list[1])
-        self.assertEquals(exp_str, str(self.request))
-
-# vim: ts=4 sts=4 sw=4 tw=80 ai smarttab et fo=rtcq list
+                       self.request.code, self.request.pid, len(self.request),
+                       self.request.compute_authenticator(avps).hex(),
+                       self.request.avp_list[0], self.request.avp_list[1])
+        self.assertEqual(exp_str, str(self.request))
